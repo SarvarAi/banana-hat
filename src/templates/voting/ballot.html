@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Vote · {{ event.name }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow"><a href="{{ event.get_absolute_url }}">{{ event.name }}</a> · Community vote</div>
+  <h1>{% if closed %}Community vote{% else %}Pick your favourites{% endif %}</h1>
+  {% if not closed %}<p class="lede">Choose up to {{ event.votes_per_voter }}. The list is shuffled for you, so no project gets the top spot for free. You can change your picks until <span class="mono">{{ event.voting_close_at|date:"Y-m-d H:i" }} UTC</span>. Totals stay hidden until then.</p>{% endif %}
+</section>
+
+{% if closed %}
+  {% if tally %}
+    <div class="card table-wrap"><table><thead><tr><th class="num">#</th><th>Project</th><th class="num">Votes</th></tr></thead>
+      <tbody>{% for r in tally %}<tr><td class="num mono">{{ r.rank }}</td><td><a href="/projects/{{ r.project }}/">{{ r.title }}</a> <span class="small muted">{{ r.team }}</span></td><td class="num mono">{{ r.votes }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}
+    <div class="empty">Voting is not open{% if event.voting_open_at %}; it opens <span class="mono">{{ event.voting_open_at|date:"Y-m-d H:i" }} UTC</span>{% endif %}.</div>
+  {% endif %}
+
+{% elif needs_login %}
+  <div class="card narrow"><p>Voting in this event is for signed-in users: one account, one ballot.</p>
+    <a class="btn" href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Sign in to vote</a></div>
+
+{% elif check_inbox %}
+  <div class="card narrow"><span class="stamp big green thunk">Sent</span><p style="margin-top:12px">If that address can vote, a link is on its way. Open it on this device to get your ballot. {% if DEMO_MODE %}In the demo, read it in Mailpit at localhost:8025.{% endif %}</p></div>
+
+{% elif needs_identity %}
+  {% if mode == "email" %}
+  <form method="post" class="card narrow">{% csrf_token %}
+    <p>We email you a one-time link; one address, one ballot. Your address is never shown to anyone.</p>
+    <div class="field"><label for="email">Email</label><input id="email" type="email" name="email" required autocomplete="email"></div>
+    <button class="btn" type="submit">Email me a ballot</button>
+  </form>
+  {% else %}
+  <div class="card narrow"><p>Votes in this event are cast with single-use ballot links handed out by the organizers. Open your link to vote.</p></div>
+  {% endif %}
+
+{% else %}
+  {% if ballot.status == "flagged" %}<div class="notice">Your ballot is saved and waiting for a quick check by the organizers before it counts.</div>{% endif %}
+  <form method="post">{% csrf_token %}
+    <div class="cards" style="margin-top:12px">
+      {% for p in projects %}
+      <label class="project-card ballot-option {% if p.public_id in chosen %}chosen{% endif %}">
+        <div class="strip"><span>{{ p.track.name|default:"" }}</span>{% if p.team_id == own_team_id %}<span>your team</span>{% endif %}</div>
+        <div class="body">
+          <h3>{{ p.title }}</h3>
+          <p>{{ p.summary|truncatechars:120 }}</p>
+        </div>
+        <div class="foot"><span>{{ p.team.name }}</span>
+          <input type="checkbox" name="projects" value="{{ p.public_id }}" {% if p.public_id in chosen %}checked{% endif %} {% if p.team_id == own_team_id %}disabled{% endif %} aria-label="Vote for {{ p.title }}"></div>
+      </label>
+      {% endfor %}
+    </div>
+    <div class="form-actions" style="margin-top:16px"><button class="btn marker" type="submit">{% if chosen %}Update my vote{% else %}Cast my vote{% endif %}</button>
+      <span class="small muted">Ballot <span class="mono">{{ ballot.public_id }}</span></span></div>
+  </form>
+{% endif %}
+{% endblock %}
