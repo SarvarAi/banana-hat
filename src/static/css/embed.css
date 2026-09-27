@@ -1,0 +1,10 @@
+/* The gallery widget, rendered inside someone else's page. */
+body.embed { background: transparent; min-height: 0; display: block; padding: 12px; }
+.embed-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; font-family: var(--font-display); }
+.embed-cards { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.embed-foot { margin-top: 10px; font-size: 0.75rem; color: var(--muted); text-align: right; }
+html[data-theme="dark"] body.embed { color: #e8eaf6; }
+html[data-theme="dark"] .project-card { background: #151b3d; border-color: #2a3366; }
+html[data-theme="dark"] .project-card h3 a { color: #fff; }
+html[data-theme="dark"] .project-card p, html[data-theme="dark"] .project-card .foot { color: #b8bedc; }
+html[data-theme="dark"] .embed-head a { color: var(--highlighter); }

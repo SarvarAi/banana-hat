@@ -1,0 +1,30 @@
+{% load static %}<!doctype html>
+<html lang="en" data-theme="{{ theme }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ event.name }} projects</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/embed.css' %}">
+</head>
+<body class="embed">
+  <header class="embed-head">
+    <strong>{{ event.name }}</strong>
+    <a href="{{ request.scheme }}://{{ request.get_host }}{{ event.get_absolute_url }}" target="_blank" rel="noopener">All projects →</a>
+  </header>
+  <div class="cards embed-cards">
+    {% for p in projects %}
+    <article class="project-card">
+      <div class="strip"><span>{% if p.rank %}#{{ p.rank }}{% else %}{{ p.public_id }}{% endif %}</span><span>{{ p.track.name|default:"" }}</span></div>
+      <div class="body">
+        <h3><a href="{{ request.scheme }}://{{ request.get_host }}{{ p.get_absolute_url }}" target="_blank" rel="noopener">{{ p.title }}</a></h3>
+        <p>{{ p.summary|truncatechars:100 }}</p>
+      </div>
+      <div class="foot"><span>{{ p.team.name }}</span></div>
+    </article>
+    {% empty %}<p class="muted">No projects yet.</p>{% endfor %}
+  </div>
+  <footer class="embed-foot">Powered by Banana Hat</footer>
+  <script src="{% static 'js/embed-frame.js' %}" defer></script>
+</body>
+</html>
