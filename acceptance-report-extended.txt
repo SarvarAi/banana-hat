@@ -1,5 +1,5 @@
 Banana Hat extended acceptance report (T3, T4)
-portal: http://localhost:8090
+portal: http://localhost:8080
 the official run.py has no T3/T4 checks; these are ours, same style
 
 T3  ballot order is random per voter, stable per ballot .. PASS
