@@ -1,7 +1,9 @@
 from datetime import timedelta
 
+from django.conf import settings
 from rest_framework import authentication, exceptions
 
+from accounts import demo
 from accounts.models import ApiToken
 from core import clock
 
@@ -25,6 +27,10 @@ class BearerTokenAuthentication(authentication.BaseAuthentication):
         raw = raw.strip()
         if not raw:
             raise exceptions.AuthenticationFailed("Empty bearer token.")
+        if raw.startswith(demo.TOKEN_PREFIX) and not settings.DEMO_MODE:
+            # The demo tokens are printed in the README. Outside demo mode they are dead,
+            # even if the database still holds them.
+            raise exceptions.AuthenticationFailed("Demo tokens only work when DEMO_MODE is on.")
         token = (
             ApiToken.objects.usable()
             .select_related("user")

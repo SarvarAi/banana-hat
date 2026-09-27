@@ -372,6 +372,20 @@ def import_event(data, *, actor=None, listed=False) -> ImportReport:
     return report
 
 
+@transaction.atomic
+def import_as_organizer(data, actor) -> ImportReport:
+    """Import, and make the importer the new event's organizer, in one transaction.
+
+    If the importer appears in the file as a judge or a team member, the organizer role
+    is refused, and the whole import rolls back instead of leaving an event nobody runs.
+    """
+    from events import services as event_services
+
+    report = import_event(data, actor=actor)
+    event_services.grant_role(report.event, actor, EventRole.Role.ORGANIZER, actor=actor)
+    return report
+
+
 def _iso(dt: datetime | None):
     """UTC with a Z, the way the fixture writes timestamps."""
     return dt.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ") if dt else None

@@ -50,6 +50,14 @@
     </section>
   </div>
   <aside class="card">
+    <h3>Email</h3>
+    {% if user.email_verified_at %}
+      <p class="small"><span class="chip good">confirmed</span> {{ user.email }}</p>
+    {% else %}
+      <p class="small"><span class="chip warn">not confirmed</span> {{ user.email }}. Confirm it to vote in community votes.</p>
+      <form method="post" action="{% url 'accounts:resend-verification' %}">{% csrf_token %}<button class="btn secondary small" type="submit">Email me a confirmation link</button></form>
+    {% endif %}
+    <hr class="divider">
     <h3>Profile</h3>
     <form method="post">{% csrf_token %}
       {% with field=profile_form.name %}{% include "partials/field.html" %}{% endwith %}

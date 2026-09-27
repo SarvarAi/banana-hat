@@ -123,6 +123,11 @@ p { margin: 0 0 1em; }
 .nav a:hover, .nav a[aria-current="page"] { background: var(--rule-soft); color: var(--carbon); }
 .nav-user { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
 .nav-user form { margin: 0; }
+@media (max-width: 640px) {
+  .topbar .wrap { gap: 4px 12px; padding-top: 8px; padding-bottom: 8px; }
+  .brand { flex: 1; }
+  .nav { order: 3; flex-basis: 100%; margin: 0 -10px; }
+}
 
 .footer {
   border-top: 1px solid var(--rule);

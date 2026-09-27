@@ -33,8 +33,15 @@ defence names the code and the test that holds it.
 *One person casts many community votes.*
 
 - **Every ballot costs an identity.** The organizer picks one of three modes per event:
-  a signed-in account, a verified email inbox, or a single-use printed link. There is no
-  anonymous voting mode. (`voting/services.py`)
+  a signed-in account with a **confirmed** email address, a verified email inbox, or a
+  single-use printed link. There is no anonymous voting mode. An account whose address
+  was never confirmed cannot vote: an unconfirmed account costs nothing to create, so it
+  is not an identity. Proof of the inbox is any link we emailed and the user opened: the
+  sign-up confirmation, a completed password reset, or an accepted judge invitation.
+  (`voting/services.py`, `accounts/verification.py`)
+- **Voters can be limited to email domains** per event (`voter_email_domains`, e.g. a
+  university's domain). It applies to confirmed addresses in signed-in mode and to
+  verified inboxes in email mode, so it cannot be claimed without receiving mail there.
 - **One identity, one ballot, in the database.** `(event, identity_digest)` is unique
   (`one_ballot_per_voter`). The digest is HMAC-SHA256 of the identity with `SECRET_KEY`,
   per event, so the table holds no emails and cannot be reversed by guessing.
@@ -63,15 +70,23 @@ defence names the code and the test that holds it.
 - **No position bias.** Each ballot shows projects in its own random order, stable for
   that ballot, so the project at the top of the list does not get free votes.
   (`test_order_is_random_per_ballot_and_stable`)
-- **No self-voting.** Voting for your own team is refused.
+- **No self-voting**, in signed-in and email modes. An email ballot is linked to the
+  account that owns that mailbox (matching the canonical address), so a participant
+  cannot vote for their own team from a private window either. Printed ballot links are
+  anonymous by design, so link mode cannot know who is voting; hand them out at the
+  venue, not to teams.
+- **Held ballots are decided while voting is open.** Once voting closes, the totals are
+  public, so reviewing a held ballot after that would let an organizer pick the outcome;
+  it is refused. The voting window and settings are also frozen once voting has closed,
+  so an organizer cannot close it for a moment, read the totals, and reopen it. Closing
+  early is allowed; it is just final.
 
-**Residual risk, stated plainly.** Someone with fifty real email inboxes, or fifty real
-accounts made days in advance, spread across networks, can cast fifty votes. No
-self-hosted system without identity verification can stop that, and we do not pretend
-to. Signed-in mode with accounts restricted to a known domain, or printed links handed
-out at the venue, raise the cost further. Organizers should weigh the community vote
-accordingly; by default it is a separate "people's choice" prize, not part of the
-judged ranking.
+**Residual risk, stated plainly.** Someone with fifty real email inboxes, spread across
+networks, can cast fifty votes. No self-hosted system without identity verification can
+stop that, and we do not pretend to. Restricting voters to a known domain, or handing out
+printed links at the venue, raises the cost further. Organizers should weigh the
+community vote accordingly; by default it decides a separate "people's choice" prize,
+not the judged ranking.
 
 ### Judge collusion and anchoring
 
@@ -82,7 +97,9 @@ judged ranking.
   They cannot see rankings before publication. There is nothing to anchor on.
 - **Conflicts of interest are first-class.** Judges recuse with a reason; the score is
   voided, the team is blocked from ever being assigned to them again, and the organizer
-  sees it. A judge cannot be a participant in the event they judge.
+  sees it. Recusal obeys the judging window like scoring does, so it cannot be used to
+  strike a score after scores have locked or results are published. A judge cannot be a
+  participant or organizer in the event they judge, and an organizer cannot compete.
 - **Normalization blunts a single outlier.** A judge who scores everyone 5 is corrected
   for their generosity; one who scores everyone the same is flagged on the dashboard.
 - **Detection, not just prevention.** The dashboard shows each judge's mean, spread and
@@ -134,6 +151,12 @@ a wide confidence interval.
   produces a head that no longer matches the signature.
 - Each judge's signed participation record carries a salted commitment to their scores.
   If a judge later disputes what they submitted, revealing the salt settles it.
+  Unpublishing results revokes every record of the event (results, certificates, judge
+  records), because they describe results that may now change; the next publication
+  issues fresh ones. A revoked record says so on its verification page.
+- The chain hashes only what an entry says (the actor's name, the event's id as text),
+  not database row ids, so routinely deleting a spam account or a test event does not
+  look like tampering.
 - **Residual risk:** before publication, an attacker with full database access and the
   `SECRET_KEY` could rewrite everything consistently. Platform admins are trusted; the
   design makes their tampering evident after publication, not impossible before it.
@@ -145,8 +168,8 @@ a wide confidence interval.
 | XSS | Django autoescaping everywhere; a CSP that forbids inline and third-party scripts; no inline JS exists to whitelist. |
 | Clickjacking | `X-Frame-Options: DENY` and `frame-ancestors 'none'`, except the read-only gallery widget. |
 | CSRF | Django CSRF on every form; bearer tokens are never sent automatically by browsers. |
-| SSRF via webhooks | Receivers on private, loopback, link-local and reserved addresses are refused, and redirects are not followed. `WEBHOOK_ALLOW_PRIVATE_TARGETS` exists for local testing only. (Residual: DNS rebinding between our check and the connection. The request carries no credentials and its response is discarded, which limits the damage.) |
-| Flooding | DRF throttles (120/min anonymous, 600/min per user, configurable), DB-backed limits on sensitive forms, gunicorn timeouts. |
+| SSRF via webhooks | Only globally routable receivers are allowed (Python's `is_global`): private, loopback, link-local, carrier-grade NAT, NAT64 and other special ranges are refused, and redirects are not followed. `WEBHOOK_ALLOW_PRIVATE_TARGETS` exists for local testing only. (Residual: DNS rebinding between our check and the connection. The request carries no credentials and its response is discarded, which limits the damage.) |
+| Flooding | DRF throttles (120/min anonymous, 600/min per user, configurable), DB-backed limits on sensitive forms, gunicorn timeouts. `X-Forwarded-For` is believed only when `BEHIND_TLS_PROXY` is set, so a client cannot claim a fresh address per request to dodge the limits. |
 | Credential stuffing | Sign-in limited per address and per account; tokens are random and hashed. |
 | Malicious import files | The import is validated as a whole, runs in one transaction, and creates no passwords. Only users allowed to create events can import. |
 | Webhook secret theft | Secrets are per endpoint and shown only to that event's organizers. They are stored in clear because they must be used to sign; rotate by deleting and re-adding the endpoint. |
@@ -156,5 +179,11 @@ a wide confidence interval.
 `DEMO_MODE=true` (the default in `docker-compose.yml`) creates fixed, publicly known
 tokens and passwords and a one-click account switcher, so a judge can evaluate every
 role in a minute. **It is a deliberate hole.** Every page shows a banner while it is on.
-The seed refuses to create demo credentials when it is off, and the switcher returns 404.
-Turn it off (and `SEED_FIXTURES`) before running a real event.
+Turn it off (and `SEED_FIXTURES`) before running a real event, and the hole closes even
+on a database that began as a demo:
+
+- the seed does not create demo credentials and the switcher returns 404;
+- bearer authentication refuses any token starting with `bh_demo_`;
+- on every boot outside demo mode, the container runs `manage.py disarm_demo`, which
+  revokes the demo tokens and replaces the published demo passwords with unusable ones
+  (then set a real admin password with `manage.py changepassword`).

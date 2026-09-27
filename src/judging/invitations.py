@@ -8,6 +8,7 @@ from django.core.mail import send_mail
 from django.db import transaction
 from django.urls import reverse
 
+from accounts import verification
 from accounts.models import User
 from audit import services as audit
 from core import clock
@@ -78,7 +79,22 @@ def accept(raw, user) -> EventRole:
         invitation.save(update_fields=["accepted_at", "accepted_by"])
         audit.record("judge.accepted", f"{user.display_name} accepted the invitation to judge",
                      actor=user, event=event, target=invitation)
+        # The invitation was emailed to this address and opened, so the address is theirs.
+        verification.mark_verified(user, "judge invitation")
     return role
+
+
+def set_tracks(role: EventRole, tracks, *, actor):
+    """Change which tracks a judge reviews. Existing assignments are left alone."""
+    access.require_organizer(actor, role.event)
+    tracks = list(tracks)
+    with transaction.atomic():
+        role.tracks.set(tracks)
+        audit.record("judge.tracks_changed",
+                     f"{actor.display_name} set {role.user.display_name}'s tracks to "
+                     f"{', '.join(t.name for t in tracks) or 'any'}",
+                     actor=actor, event=role.event, target=role,
+                     data={"tracks": [t.public_id for t in tracks]})
 
 
 def revoke(invitation, actor):

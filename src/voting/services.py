@@ -137,9 +137,34 @@ def ballot_for_user(event: Event, user, meta) -> Ballot:
     ensure_voting_open(event)
     if event.voting_mode != Event.VotingMode.AUTHENTICATED:
         raise Forbidden("This event does not use signed-in voting.")
+    if not user.email_verified_at:
+        # An unconfirmed account costs nothing to create, so it is not an identity.
+        raise Forbidden("Confirm your email address to vote. The link is on your account page.",
+                        code="email_unverified")
+    if not event.voter_domain_allowed(user.email):
+        raise Forbidden("Voting in this event is limited to addresses at: "
+                        f"{event.voter_email_domains}.", code="domain_not_allowed")
     ballot, _ = _new_ballot(event, Ballot.Kind.USER, identity_digest(event, "user", str(user.pk)),
                             user=user, meta=meta)
     return ballot
+
+
+def account_for_email(email: str):
+    """The account that owns this mailbox, if any, matching on the canonical address.
+
+    An email ballot is linked to it so the own-team rule applies: a participant cannot
+    vote for their team just by using the email form in a private window.
+    """
+    from accounts.models import User
+
+    canon = canonical_email(email)
+    domain = canon.rsplit("@", 1)[-1]
+    domains = ["gmail.com", "googlemail.com"] if domain == "gmail.com" else [domain]
+    query = Q()
+    for d in domains:
+        query |= Q(email__iendswith="@" + d)
+    return next((u for u in User.objects.filter(query).only("id", "email") if canonical_email(u.email) == canon),
+                None)
 
 
 def request_email_ballot(event: Event, email: str, meta, *, base_url) -> None:
@@ -151,17 +176,23 @@ def request_email_ballot(event: Event, email: str, meta, *, base_url) -> None:
     email = (email or "").strip().lower()
     if "@" not in email or "." not in email.split("@")[-1]:
         raise DomainError("Enter a valid email address.")
+    if not event.voter_domain_allowed(email):
+        raise Forbidden(f"Voting in this event is limited to addresses at: {event.voter_email_domains}.",
+                        code="domain_not_allowed")
     ratelimit.enforce(ratelimit.EMAIL_VERIFY, "ip:" + meta.get("ip", ""))
     ratelimit.enforce(ratelimit.EMAIL_VERIFY, "email:" + canonical_email(email))
     identity = identity_digest(event, "email", canonical_email(email))
-    ballot, _ = _new_ballot(event, Ballot.Kind.EMAIL, identity, email_hint=mask_email(email), meta=meta,
-                            status=Ballot.Status.PENDING)
-    if email.split("@")[-1] in DISPOSABLE_DOMAINS and "disposable email domain" not in ballot.flags:
-        ballot.flags = [*ballot.flags, "disposable email domain"]
-        ballot.save(update_fields=["flags"])
     raw = secrets.token_urlsafe(24)
-    BallotToken.objects.create(event=event, purpose=BallotToken.Purpose.VERIFY, ballot=ballot,
-                               token_digest=_digest("tok:" + raw), expires_at=clock.now() + VERIFY_TTL)
+    with transaction.atomic():
+        ballot, _ = _new_ballot(event, Ballot.Kind.EMAIL, identity, email_hint=mask_email(email), meta=meta,
+                                user=account_for_email(email), status=Ballot.Status.PENDING)
+        if email.split("@")[-1] in DISPOSABLE_DOMAINS and "disposable email domain" not in ballot.flags:
+            ballot.flags = [*ballot.flags, "disposable email domain"]
+            ballot.save(update_fields=["flags"])
+        BallotToken.objects.create(event=event, purpose=BallotToken.Purpose.VERIFY, ballot=ballot,
+                                   token_digest=_digest("tok:" + raw), expires_at=clock.now() + VERIFY_TTL)
+        audit.record("ballot.requested", f"Ballot link emailed to {mask_email(email)}", event=event,
+                     target=ballot, source="vote")
     link = base_url + reverse("voting:verify", args=[event.slug, raw])
     send_mail(
         subject=f"Your ballot for {event.name}",
@@ -171,8 +202,6 @@ def request_email_ballot(event: Event, email: str, meta, *, base_url) -> None:
                     if ballot.cast_at else "")),
         from_email=None, recipient_list=[email], fail_silently=False,
     )
-    audit.record("ballot.requested", f"Ballot link emailed to {mask_email(email)}", event=event,
-                 target=ballot, source="vote")
 
 
 def redeem_verify_token(event: Event, raw: str) -> Ballot:
@@ -188,6 +217,8 @@ def redeem_verify_token(event: Event, raw: str) -> Ballot:
         if ballot.status == Ballot.Status.PENDING:
             ballot.status = Ballot.Status.COUNTED
             ballot.save(update_fields=["status"])
+            audit.record("ballot.verified", f"Ballot {ballot.public_id} ({ballot.email_hint}) confirmed its email",
+                         event=event, target=ballot, source="vote")
     return ballot
 
 
@@ -268,6 +299,9 @@ def cast(ballot: Ballot, project_ids, *, voter=None) -> Ballot:
             raise Forbidden("You cannot vote for your own team.", code="own_team")
     ratelimit.enforce(ratelimit.VOTE, "ballot:" + ballot.public_id)
     with transaction.atomic():
+        # Lock the ballot: two simultaneous casts must not both replace its choices and
+        # leave twice the allowed number behind.
+        Ballot.objects.select_for_update().filter(pk=ballot.pk).first()
         first_time = ballot.cast_at is None
         ballot.choices.all().delete()
         BallotChoice.objects.bulk_create(BallotChoice(ballot=ballot, project=allowed[pid]) for pid in wanted)
@@ -295,6 +329,10 @@ def review_ballot(ballot: Ballot, actor, decision: str):
     access.require_organizer(actor, ballot.event)
     if decision not in {"count", "void"}:
         raise DomainError("Decide to count or void the ballot.")
+    if ballot.event.voting_closed():
+        # Once voting closes the totals are public. Deciding held ballots after seeing
+        # them would let an organizer choose the outcome.
+        raise VotingClosed("Voting has closed; held ballots can only be reviewed while it is open.")
     with transaction.atomic():
         ballot.status = Ballot.Status.COUNTED if decision == "count" else Ballot.Status.VOID
         ballot.reviewed_by = actor

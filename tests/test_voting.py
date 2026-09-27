@@ -49,7 +49,7 @@ def _old_user(email):
     from core import clock
 
     return User.objects.create_user(email=email, name=email.split("@")[0],
-                                    date_joined=clock.now() - timedelta(days=30))
+                                    date_joined=clock.now() - timedelta(days=30), email_verified_at=clock.now())
 
 
 def test_order_is_random_per_ballot_and_stable(open_event, db):
@@ -138,8 +138,9 @@ def test_burst_from_one_network_is_held_not_counted(open_event, db):
 
 def test_brand_new_account_is_held_for_review(open_event, db):
     from accounts.models import User
+    from core import clock
 
-    fresh = User.objects.create_user(email="fresh@example.net", name="Fresh")
+    fresh = User.objects.create_user(email="fresh@example.net", name="Fresh", email_verified_at=clock.now())
     ballot = voting.cast(voting.ballot_for_user(open_event, fresh, META), _others(open_event, fresh, 1), voter=fresh)
     assert ballot.status == Ballot.Status.FLAGGED
     assert "account created minutes before voting" in ballot.flags
@@ -149,9 +150,15 @@ def test_flagged_ballots_do_not_count_until_reviewed(open_event, organizer, stra
     target = _others(open_event, stranger, 1)
     ballot = voting.cast(voting.ballot_for_user(open_event, stranger, META), target, voter=stranger)
     Ballot.objects.filter(pk=ballot.pk).update(status=Ballot.Status.FLAGGED)
-    clock.set(open_event.voting_close_at + timedelta(minutes=1))
+    closed = open_event.voting_close_at + timedelta(minutes=1)
+    clock.set(closed)
     assert all(r["votes"] == 0 for r in voting.tally(open_event))
+    # After close the totals are public, so held ballots can no longer be decided.
+    with pytest.raises(voting.VotingClosed):
+        voting.review_ballot(Ballot.objects.get(pk=ballot.pk), organizer, "count")
+    clock.set(open_event.voting_close_at - timedelta(minutes=1))
     voting.review_ballot(Ballot.objects.get(pk=ballot.pk), organizer, "count")
+    clock.set(closed)
     assert voting.tally(open_event)[0]["votes"] == 1
 
 

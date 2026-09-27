@@ -1,7 +1,10 @@
 """The seeded demo accounts: who they are, and the fixed credentials the checker uses.
 
-Everything here is inert unless DEMO_MODE is on. The seed command refuses to create
-these tokens otherwise, and the one-click switcher returns 404.
+Everything here is inert unless DEMO_MODE is on: the seed does not create these
+credentials, the one-click switcher returns 404, bearer authentication refuses any
+token starting with TOKEN_PREFIX, and `manage.py disarm_demo` (run by the container on
+every boot outside demo mode) revokes the tokens and scrubs the known passwords from a
+database that was once a demo.
 """
 
 from django.urls import reverse
@@ -16,6 +19,7 @@ JUDGE_B_ID = "jdg_26"
 # Captain of tm_01, whose project is Glass Signal, the first fixture project.
 PARTICIPANT_TEAM_ID = "tm_01"
 
+TOKEN_PREFIX = "bh_demo_"  # noqa: S105 (a prefix, published on purpose)
 TOKENS = {
     "organizer": "bh_demo_organizer_2026",
     "judge_a": "bh_demo_judge_a_2026",

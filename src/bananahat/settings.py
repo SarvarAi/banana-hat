@@ -187,8 +187,12 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
-if env_bool("BEHIND_TLS_PROXY", False):
+BEHIND_TLS_PROXY = env_bool("BEHIND_TLS_PROXY", False)
+if BEHIND_TLS_PROXY:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# X-Forwarded-For is only believed behind a declared proxy. Otherwise any client could
+# claim a new address per request and walk straight past every rate limit.
+TRUST_X_FORWARDED_FOR = BEHIND_TLS_PROXY
 
 FORMS_URLFIELD_ASSUME_HTTPS = True
 
@@ -248,6 +252,8 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],
+    # DRF believes X-Forwarded-For unless told how many proxies to trust.
+    "NUM_PROXIES": 1 if BEHIND_TLS_PROXY else 0,
     "EXCEPTION_HANDLER": "core.api.exception_handler",
     "UNAUTHENTICATED_USER": "django.contrib.auth.models.AnonymousUser",
 }

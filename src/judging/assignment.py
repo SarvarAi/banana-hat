@@ -206,9 +206,14 @@ def unassign(assignment: Assignment, *, actor):
 
 def recuse(assignment: Assignment, *, actor, reason: str):
     """A judge declares a conflict of interest. Recorded, never silently dropped."""
+    from judging import scoring
+
     judge = assignment.judge
     if actor.pk != judge.user_id and not access.is_organizer(actor, assignment.event):
         raise DomainError("Only the judge or an organizer can recuse.", status=403)
+    # Recusing voids the score, so it is a change to the results: it obeys the same
+    # window as scoring. Once scores lock, a recusal cannot quietly remove one.
+    scoring.ensure_judging_open(assignment.event)
     reason = (reason or "").strip() or "conflict of interest"
     with transaction.atomic():
         assignment.status = Assignment.Status.RECUSED
@@ -219,8 +224,6 @@ def recuse(assignment: Assignment, *, actor, reason: str):
             defaults={"reason": reason[:300], "declared_by": actor},
         )
         if hasattr(assignment, "score") and assignment.score.voided_at is None:
-            from judging import scoring
-
             scoring.void_score(assignment.score, actor=actor, reason=f"recused: {reason}", check=False)
         audit.record("assignment.recused",
                      f"{judge.user.display_name} recused from {assignment.project.title}: {reason}",

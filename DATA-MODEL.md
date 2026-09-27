@@ -81,14 +81,14 @@ likely addresses.
 
 | Table | Purpose | Notes |
 |---|---|---|
-| `User` | A person. Email is the login. | Case-insensitive unique email (`user_email_ci_unique`). `is_staff` = platform admin. `can_create_events` lets a non-admin create events. Imported people start with no usable password and claim the account through the reset link. |
+| `User` | A person. Email is the login. | Case-insensitive unique email (`user_email_ci_unique`). `is_staff` = platform admin. `can_create_events` lets a non-admin create events. `email_verified_at` records when they proved the inbox (confirmation link, password reset, or judge invitation); signed-in voting requires it. Imported people start with no usable password and claim the account through the reset link. |
 | `ApiToken` | Bearer tokens. | `digest` unique; `prefix` kept in clear so users can tell tokens apart; `expires_at`, `revoked_at`, `last_used_at` (touched at most once a minute). |
 
 ### events
 
 | Table | Purpose | Notes |
 |---|---|---|
-| `Event` | A hackathon. | Dates, scale, review target, normalization method, voting mode and window, `results_published_at`, `is_listed` (drafts are private). Check constraints order the windows (see below). |
+| `Event` | A hackathon. | Dates, scale, review target, normalization method, voting mode and window, `voter_email_domains` (optional allowlist), `results_published_at`, `is_listed` (drafts are private). Check constraints order the windows (see below). Voting settings freeze once voting closes. |
 | `Track` | A category of projects. | Name unique per event, case-insensitively. |
 | `Prize` | Overall or per track. | `winner` filled at publication from the frozen ranking. |
 | `EventRole` | What a person may do in an event: `organizer`, `judge` or `participant`. | Unique per (event, user, role). `tracks` (judges only): the tracks they review; empty means all. The five roles of the brief map as visitor = no row, participant/judge/organizer = a row, admin = `User.is_staff`. Roles are per event because people are: the judge at one hackathon competes in the next. |
@@ -123,12 +123,12 @@ likely addresses.
 
 | Table | Purpose | Notes |
 |---|---|---|
-| `AuditEntry` | Hash-chained history. | `prev_digest` + `digest` (SHA-256 over the canonical entry), an organizer-readable `summary`, structured `data`. |
+| `AuditEntry` | Hash-chained history. | `prev_digest` + `digest` (SHA-256 over the canonical entry), an organizer-readable `summary`, structured `data`. The digest covers text snapshots (`actor_label`, `event_ref`), not the nullable foreign keys, so deleting a user or event leaves the chain intact. `format` records the digest rule each entry was written under. |
 | `AuditChainHead` | One row: the latest digest. | Writers lock it to append in order; a check constraint keeps it a singleton. |
 | `WebhookEndpoint` | Receiver URL, event types, signing secret. | The secret has to be retrievable to sign, so it is stored as is (see limitations in README). |
 | `WebhookDelivery` | The outbox. | Status, attempts, next attempt, last error. |
 | `SigningKey` | The portal's Ed25519 keys. | Public key in clear; private key encrypted with a key derived from `SECRET_KEY`. Retired keys stay listed. |
-| `SignedRecord` | Signed statements: results, judge participation, certificates. | `canonical` holds the exact signed bytes. |
+| `SignedRecord` | Signed statements: results, judge participation, certificates. | `canonical` holds the exact signed bytes. `revoked_at` + reason: unpublishing results revokes the event's records, and the next publication reissues them. |
 | `RateLimitCounter` | Fixed-window counters. | Keyed by digest, never a raw IP. |
 
 ## Constraints worth defending
@@ -195,7 +195,8 @@ Nothing that judging depends on is ever hard-deleted by the application:
 - scores are **voided** (with a reason), not deleted;
 - projects are **withdrawn**, duplicates **flagged**;
 - comments are **hidden**, ballots **voided**;
-- published results are **snapshotted**, and unpublishing keeps the snapshot;
+- published results are **snapshotted**, and unpublishing keeps the snapshot and
+  **revokes** (does not delete) the signed records built on it;
 - the audit trail is append-only, and a gap or an edit breaks the hash chain.
 
 Deleting an event (admin only, in `/admin`) cascades to everything in it except its

@@ -347,7 +347,9 @@ def unpublish(event, actor, reason):
         audit.record("results.unpublished", f"{actor.display_name} unpublished results: {reason}",
                      actor=actor, event=event, target=event, data={"reason": reason})
         from integrations import webhooks
+        from records import services as records
 
+        records.revoke_event_records(event, actor=actor, reason=f"results unpublished: {reason}")
         webhooks.emit(event, "results.unpublished", {"event": event.public_id, "reason": reason})
 
 

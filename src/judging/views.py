@@ -51,7 +51,8 @@ def event_queue(request, slug):
     pending = [a for a in assignments if a.status == Assignment.Status.PENDING]
     done = [a for a in assignments if a.status == Assignment.Status.DONE]
     recused = [a for a in assignments if a.status == Assignment.Status.RECUSED]
-    record = SignedRecord.objects.filter(event=event, kind=SignedRecord.Kind.JUDGE, subject=request.user).first()
+    record = SignedRecord.objects.filter(event=event, kind=SignedRecord.Kind.JUDGE, subject=request.user,
+                                         revoked_at__isnull=True).first()
     return render(request, "judging/queue.html", {
         "event": event, "role": role, "pending": pending, "done": done, "recused": recused,
         "judging_open": event.judging_open(), "record": record,

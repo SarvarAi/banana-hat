@@ -38,6 +38,12 @@ class AuditEntry(models.Model):
     summary = models.CharField(max_length=400)
     data = models.JSONField(default=dict, blank=True)
     source = models.CharField(max_length=16, default="web")
+    event_ref = models.CharField(
+        max_length=40, blank=True, help_text="The event's public id when the entry was written."
+    )
+    format = models.PositiveSmallIntegerField(
+        default=2, help_text="Digest format. 1 hashed row ids; 2 hashes only text snapshots."
+    )
     prev_digest = models.CharField(max_length=64)
     digest = models.CharField(max_length=64, unique=True)
 
@@ -53,18 +59,22 @@ class AuditEntry(models.Model):
         return f"#{self.pk} {self.action}: {self.summary}"
 
     def compute_digest(self) -> str:
+        # Format 2 hashes only what the entry itself says. Row ids of the actor and the
+        # event are not covered, because deleting a user or an event nulls them (SET_NULL)
+        # and a routine deletion must not look like tampering.
         body = {
             "prev": self.prev_digest,
             "at": self.at.isoformat(),
-            "actor": self.actor_id,
             "actor_label": self.actor_label,
-            "event": self.event_id,
+            "event": self.event_ref,
             "action": self.action,
             "target": [self.target_type, self.target_id],
             "summary": self.summary,
             "data": self.data,
             "source": self.source,
         }
+        if self.format == 1:
+            body.update(actor=self.actor_id, event=self.event_id)
         canonical = json.dumps(body, sort_keys=True, separators=(",", ":"), default=str)
         return hashlib.sha256(canonical.encode()).hexdigest()
 

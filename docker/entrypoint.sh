@@ -15,6 +15,10 @@ case "${1:-web}" in
     if [ "${SEED_FIXTURES:-false}" = "true" ]; then
       python manage.py seed --fixtures /app/fixtures.json
     fi
+    if [ "${DEMO_MODE:-false}" != "true" ]; then
+      # A volume that started life as a demo must not keep its published credentials.
+      python manage.py disarm_demo
+    fi
     exec gunicorn bananahat.wsgi:application \
       --bind 0.0.0.0:8000 \
       --workers "${WEB_CONCURRENCY:-3}" \

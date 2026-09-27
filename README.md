@@ -109,13 +109,15 @@ portal in the same style (see [Acceptance](#acceptance)).
 - CSV export of scores, results and projects, plus the audit trail.
 
 **T3: public**
-- Community voting in three modes: signed-in, verified email, or single-use ballot links.
+- Community voting in three modes: signed-in with a confirmed email, verified email, or
+  single-use ballot links; optionally limited to email domains.
 - Comments, with organizer moderation (hide with a reason, never delete).
 - Vote totals hidden from everyone, organizers included, until voting closes.
 - Each ballot has its own random, stable project order.
 - Anti-abuse: DB-backed rate limits, one ballot per identity as a database constraint,
-  email alias folding, suspicious ballots held for review, and a hash-chained audit
-  trail that organizers can read, filter and download
+  email alias folding, no voting for your own team, suspicious ballots held for review
+  (and decided before the totals are public), voting settings frozen once voting closes,
+  and a hash-chained audit trail that organizers can read, filter and download
   ([THREAT-MODEL.md](THREAT-MODEL.md)).
 
 **T4: stretch**
@@ -161,6 +163,9 @@ T2 fails the build.
    `BEHIND_TLS_PROXY=true` and `SECURE_COOKIES=true`.
 3. Create yourself an admin account:
    `docker compose run --rm web python manage.py createsuperuser`.
+   If the volume started as a demo, you do not have to wipe it: with `DEMO_MODE` off,
+   every boot runs `manage.py disarm_demo`, which revokes the published demo tokens and
+   scrubs the demo passwords.
 4. Sign in, create the event (or import one on the console's Import page), add tracks,
    prizes and the rubric, list it, and share the link. Invite judges from the Judges tab.
 5. After the deadline: *Assignments → Assign*, watch *Live progress*, look at *Results*,
@@ -241,7 +246,7 @@ cd src && python manage.py migrate && DEMO_MODE=true python manage.py seed
 DEMO_MODE=true DEBUG=true python manage.py runserver 8080
 ```
 
-Tests (127 of them, about 25 seconds, SQLite by default):
+Tests (144 of them, about 25 seconds, SQLite by default):
 
 ```bash
 pytest
@@ -251,17 +256,20 @@ DATABASE_URL=postgres://user:pass@localhost:5432/test pytest    # against Postgr
 They include the official `run.py` against a live server, a role × endpoint access
 matrix, a structural check that every view declares its access, deadline tests at
 second precision, import/export round trips against the real `fixtures.json`, audit
-tamper detection, and the statistical claims in JUDGING.md as assertions. `ruff check`
-keeps the style.
+tamper detection, the statistical claims in JUDGING.md as assertions, and a regression
+test for each finding of an independent security review (`tests/test_hardening.py`).
+`ruff check` keeps the style.
 
 Reproduce the normalization study:
 `docker compose exec web python src/manage.py normalization_report --runs 1000`.
 
 ## Honest limitations
 
-- **Sybil voting is raised in cost, not solved.** Someone with many real inboxes or
-  accounts made in advance can vote many times. We hold suspicious ballots and say so
-  ([THREAT-MODEL.md](THREAT-MODEL.md)).
+- **Sybil voting is raised in cost, not solved.** Someone with many real inboxes can
+  vote many times. We require a confirmed address, fold aliases, hold suspicious ballots
+  and say so ([THREAT-MODEL.md](THREAT-MODEL.md)).
+- **Printed ballot links are anonymous**, so in link mode we cannot stop someone voting
+  for their own team. Signed-in and email modes do stop it.
 - **Normalization corrects a judge's level, not their spread**, and treats 1–5 scores as
   interval data. On the fixture's own design this costs at most 0.002 in rank
   correlation against the best alternative ([JUDGING.md §11](JUDGING.md#11-limitations)).
@@ -277,7 +285,8 @@ Reproduce the normalization study:
   keyboard-operable scorecard. Not yet audited with a screen reader.
 - **Scale**: exercised at fixture scale (41 projects, 30 judges) and in tests; not load
   tested beyond that. Results are computed per request (about 25 ms for the fixture).
-- **Demo mode is a deliberate hole** (public credentials). It says so on every page.
+- **Demo mode is a deliberate hole** (public credentials). It says so on every page, and
+  it closes when `DEMO_MODE` is turned off.
 
 ## Documentation
 

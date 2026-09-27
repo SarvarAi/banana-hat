@@ -91,8 +91,9 @@ def check_target(url: str):
         raise UnsafeTarget(f"cannot resolve {parsed.hostname}") from exc
     for info in infos:
         address = ipaddress.ip_address(info[4][0])
-        if address.is_private or address.is_loopback or address.is_link_local or address.is_reserved \
-                or address.is_multicast or address.is_unspecified:
+        # is_global is the allowlist: it also rules out carrier-grade NAT (100.64/10),
+        # NAT64 (64:ff9b::/96) and the other special ranges is_private does not cover.
+        if not address.is_global or address.is_multicast:
             raise UnsafeTarget(f"{parsed.hostname} resolves to a private address ({address})")
 
 

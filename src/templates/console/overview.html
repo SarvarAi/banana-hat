@@ -49,6 +49,8 @@
         {% with field=form.voting_open_at %}{% include "partials/field.html" %}{% endwith %}
         {% with field=form.voting_close_at %}{% include "partials/field.html" %}{% endwith %}
       </div>
+      {% with field=form.voter_email_domains %}{% include "partials/field.html" %}{% endwith %}
+      <p class="small muted">Signed-in voting requires a confirmed email address. Once voting closes, these settings are frozen.</p>
     </fieldset>
     <button class="btn" type="submit">Save settings</button>
   </form>

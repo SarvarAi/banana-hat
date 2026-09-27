@@ -19,6 +19,11 @@
   <div class="card narrow"><p>Voting in this event is for signed-in users: one account, one ballot.</p>
     <a class="btn" href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Sign in to vote</a></div>
 
+{% elif blocked %}
+  <div class="card narrow"><p>{{ blocked }}</p>
+    {% if unverified %}<form method="post" action="{% url 'accounts:resend-verification' %}">{% csrf_token %}<button class="btn" type="submit">Email me a confirmation link</button></form>{% endif %}
+  </div>
+
 {% elif check_inbox %}
   <div class="card narrow"><span class="stamp big green thunk">Sent</span><p style="margin-top:12px">If that address can vote, a link is on its way. Open it on this device to get your ballot. {% if DEMO_MODE %}In the demo, read it in Mailpit at localhost:8025.{% endif %}</p></div>
 

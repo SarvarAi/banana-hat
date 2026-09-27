@@ -27,16 +27,17 @@ def _test_settings():
     settings.PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
     settings.REST_FRAMEWORK = {**settings.REST_FRAMEWORK, "DEFAULT_THROTTLE_CLASSES": []}
     settings.ALLOWED_HOSTS = ["*"]
+    settings.DEMO_MODE = True
 
 
 @pytest.fixture(scope="session")
 def django_db_setup(django_db_setup, django_db_blocker):
     from django.conf import settings
 
+    # The suite runs as the demo does: the demo tokens are how it acts as each role.
     settings.DEMO_MODE = True
     with django_db_blocker.unblock():
         call_command("seed", fixtures=str(FIXTURES), quiet=True, verbosity=0)
-    settings.DEMO_MODE = False
 
 
 @pytest.fixture
@@ -106,7 +107,8 @@ def stranger(db):
 
     # An established account: brand-new accounts are held for review when they vote.
     return User.objects.create_user(email="stranger@example.net", name="Sam Stranger", password="x" * 12,
-                                    date_joined=clock.now() - timedelta(days=30))
+                                    date_joined=clock.now() - timedelta(days=30),
+                                    email_verified_at=clock.now() - timedelta(days=30))
 
 
 class Api:

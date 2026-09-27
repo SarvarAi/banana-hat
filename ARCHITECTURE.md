@@ -108,7 +108,8 @@ naming another judge. This is why the official checker's "judge cannot see peer 
 passes: the backend never had the rows to leak.
 
 **Authentication.** Browsers use Django sessions (HttpOnly, SameSite=Lax, CSRF-protected
-forms). API clients use `Authorization: Bearer bh_...` tokens that users create on their
+forms). Email addresses are confirmed with a signed, expiring link (nothing stored);
+signed-in community voting requires a confirmed address. API clients use `Authorization: Bearer bh_...` tokens that users create on their
 account page. Tokens are shown once, stored as SHA-256 digests, expire and can be
 revoked. Bearer requests skip CSRF by design, because a browser never attaches them on
 its own, which is also why the checker's late POST reaches the deadline check instead
@@ -141,8 +142,10 @@ def ensure_team_can_edit(event, team, at=None):
 ## The audit chain
 
 [`audit/services.py`](src/audit/services.py). Each `AuditEntry` stores the digest of the
-entry before it, and its own SHA-256 digest covers that link plus its timestamp, actor,
-event, action, target, summary and data. Appending locks the single `AuditChainHead`
+entry before it, and its own SHA-256 digest covers that link plus its timestamp, the
+actor's name, the event's public id, the action, target, summary and data. It hashes
+text snapshots rather than row ids, so deleting a user or an event (which nulls the
+foreign keys) does not read as tampering. Appending locks the single `AuditChainHead`
 row, so concurrent writers serialise, and it happens inside the same transaction as the
 change it describes: there is no moment when a score changed and the log does not say so.
 
@@ -191,7 +194,8 @@ bytes are stored, so verification never depends on re-serialising) plus a signat
 
 Three kinds are signed: the published **results** (with the audit head digest), every
 judge's **participation record** (with a salted commitment to their scores), and
-participants' **certificates**. Anyone can verify one with
+participants' **certificates**. Unpublishing revokes all of an event's records, since
+they describe results that may change, and the next publication issues fresh ones. Anyone can verify one with
 [`tools/verify_record.py`](tools/verify_record.py), a standard-library script that
 implements Ed25519 verification from RFC 8032 in about 70 lines, so checking a record
 requires trusting neither this server nor a crypto library.
@@ -216,6 +220,9 @@ requires trusting neither this server nor a crypto library.
   the worker starts only once web is healthy.
 - **Migrations** run on container start. They are plain Django migrations and work
   forwards on SQLite and PostgreSQL alike.
+- **Demo mode off means off.** On every boot with `DEMO_MODE` unset, the entrypoint runs
+  `manage.py disarm_demo`, which revokes the published demo tokens and scrubs the demo
+  passwords, so a volume that began as a demo is safe for a real event.
 - **Scale.** One event is small data: the fixture is 122 reviews. Results are computed
   on request (the judge-effect fit is a 30 × 30 linear solve, about 25 ms) and never
   cached, so they are never stale. Gunicorn workers are stateless; add more with

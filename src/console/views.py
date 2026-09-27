@@ -243,13 +243,8 @@ def judges(request, slug):
             elif action == "tracks":
                 role = get_object_or_404(EventRole, event=event, public_id=request.POST["judge"],
                                          role=EventRole.Role.JUDGE)
-                role.tracks.set(event.tracks.filter(public_id__in=request.POST.getlist("tracks")))
-                from audit import services as audit
-
-                audit.record("judge.tracks_changed",
-                             f"{request.user.display_name} set {role.user.display_name}'s tracks to "
-                             f"{', '.join(t.name for t in role.tracks.all()) or 'any'}",
-                             actor=request.user, event=event, target=role)
+                invitations.set_tracks(role, event.tracks.filter(public_id__in=request.POST.getlist("tracks")),
+                                       actor=request.user)
                 messages.success(request, "Tracks updated.")
             elif action == "remove":
                 role = get_object_or_404(EventRole, event=event, public_id=request.POST["judge"],
@@ -475,8 +470,7 @@ def import_event(request):
     if request.method == "POST" and request.FILES.get("file"):
         try:
             document = json.load(request.FILES["file"])
-            report = interchange.import_event(document, actor=request.user)
-            event_services.grant_role(report.event, request.user, EventRole.Role.ORGANIZER, actor=request.user)
+            report = interchange.import_as_organizer(document, request.user)
         except (ValueError, UnicodeDecodeError):
             messages.error(request, "That file is not valid JSON.")
         except DomainError as exc:

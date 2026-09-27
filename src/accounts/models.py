@@ -58,6 +58,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=False, help_text="May create new events, becoming their first organizer."
     )
     date_joined = models.DateTimeField(default=clock.now)
+    email_verified_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="When the user proved they read this inbox: a verification link, a password reset, "
+                  "or an accepted judge invitation. Signed-in voting requires it.",
+    )
 
     objects = UserManager()
 

@@ -586,8 +586,7 @@ class ImportView(APIView):
     def post(self, request):
         if not request.user.may_create_events:
             raise PermissionDenied("Your account cannot create events.")
-        report = interchange.import_event(request.data, actor=request.user)
-        event_services.grant_role(report.event, request.user, EventRole.Role.ORGANIZER, actor=request.user)
+        report = interchange.import_as_organizer(request.data, request.user)
         return Response(report.as_dict(), status=201)
 
 
@@ -734,11 +733,11 @@ class JudgeRecordView(APIView):
 
     def get(self, request, judge_id):
         role = self._role(request, judge_id, organizer_only=False)
-        record = SignedRecord.objects.filter(event=role.event, kind=SignedRecord.Kind.JUDGE,
-                                             subject=role.user).select_related("key").first()
+        record = SignedRecord.objects.filter(event=role.event, kind=SignedRecord.Kind.JUDGE, subject=role.user,
+                                             revoked_at__isnull=True).select_related("key").first()
         if record is None:
-            raise NotFound("No record issued yet.")
-        return Response(records.export(record))
+            raise NotFound("No current record; one is issued when results are published.")
+        return Response({**records.export(record), "record": record.public_id})
 
     def post(self, request, judge_id):
         role = self._role(request, judge_id, organizer_only=True)

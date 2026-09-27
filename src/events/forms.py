@@ -64,7 +64,7 @@ class EventForm(forms.ModelForm):
             "submissions_open_at", "submissions_close_at", "judging_close_at",
             "max_team_size", "reviews_per_project", "judge_max_load", "score_min", "score_max",
             "normalization",
-            "voting_mode", "voting_open_at", "voting_close_at", "votes_per_voter",
+            "voting_mode", "voting_open_at", "voting_close_at", "votes_per_voter", "voter_email_domains",
         ]
         widgets = {
             "submissions_open_at": DateTimeInput(),

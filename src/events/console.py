@@ -58,6 +58,11 @@ def update_event(event: Event, user, data: dict) -> Event:
         or data.get("score_max", event.score_max) != event.score_max
     ):
         raise Conflict("The score scale cannot change once judges have scored.", code="scale_locked")
+    voting_fields = {"voting_mode", "voting_open_at", "voting_close_at", "votes_per_voter"}
+    if event.voting_closed() and any(data.get(k, getattr(event, k)) != getattr(event, k) for k in voting_fields):
+        # Otherwise an organizer could close voting for a moment, read the totals, and
+        # reopen it. Closing early is allowed; it is just final.
+        raise Conflict("Community voting has closed, so its settings are frozen.", code="voting_locked")
     for key, value in data.items():
         setattr(event, key, value)
     changed = {k: [str(before[k]), str(getattr(event, k))] for k in data if before[k] != getattr(event, k)}

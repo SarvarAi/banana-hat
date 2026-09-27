@@ -186,11 +186,24 @@ def issue_judge_record(event, judge_role, *, actor=None) -> SignedRecord:
     return record
 
 
+def revoke_event_records(event, *, actor, reason):
+    """Unpublishing makes every record built on the old results wrong: the results
+    record itself, certificates that quote a rank, and judge records whose score
+    commitment covers scores that may now change. They are revoked (kept, marked, and
+    shown as revoked on their verification page) and reissued at the next publication."""
+    live = SignedRecord.objects.filter(event=event, revoked_at__isnull=True)
+    count = live.update(revoked_at=clock.now(), revoked_reason=reason[:200])
+    if count:
+        audit.record("record.revoked", f"Revoked {count} signed record(s) of {event.name}: {reason}",
+                     actor=actor, event=event, target=event, data={"count": count})
+    return count
+
+
 def issue_judge_records(event):
     from judging.models import Assignment
 
     judges = event.roles.judges().filter(assignments__status=Assignment.Status.DONE).distinct()
-    already = set(SignedRecord.objects.filter(event=event, kind=SignedRecord.Kind.JUDGE)
+    already = set(SignedRecord.objects.filter(event=event, kind=SignedRecord.Kind.JUDGE, revoked_at__isnull=True)
                   .values_list("subject_id", flat=True))
     for role in judges.select_related("user").prefetch_related("tracks"):
         if role.user_id not in already:
@@ -206,7 +219,8 @@ def certificate_for(event, user, *, actor=None) -> SignedRecord | None:
     membership = TeamMember.objects.select_related("team").filter(event=event, user=user).first()
     if results is None or membership is None:
         return None
-    existing = SignedRecord.objects.filter(event=event, kind=SignedRecord.Kind.CERTIFICATE, subject=user).first()
+    existing = SignedRecord.objects.filter(event=event, kind=SignedRecord.Kind.CERTIFICATE, subject=user,
+                                           revoked_at__isnull=True).first()
     if existing:
         return existing
     project = membership.team.projects.filter(status="submitted", duplicate_of__isnull=True).first()

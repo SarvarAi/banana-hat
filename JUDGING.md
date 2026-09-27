@@ -63,7 +63,9 @@ outstanding work.
 **Conflicts of interest.** A judge who recuses from a project (from the scoring page, or
 `POST /api/v1/assignments/{id}/recuse`) gives a reason, their score for it (if any) is
 voided, a `Conflict` row is written so they are never assigned to that team again, and
-the project shows up as under-covered on the dashboard. Judges cannot join a team in an
+the project shows up as under-covered on the dashboard. Recusal voids a score, so it
+obeys the same window as scoring: once scores lock or results are published, it is
+refused. Judges cannot join a team in an
 event they judge, and a judge cannot also be an organizer of that event. The second rule
 exists because organizers can read every score, which would make isolation a fiction.
 
@@ -356,7 +358,10 @@ submissions or community voting are still open. When it happens:
   audit ever needs it, revealing the salt proves exactly what they submitted.
 
 If a mistake is found, **Unpublish** takes the results down with a mandatory reason
-(audited) and reopens judging. The old snapshot is kept.
+(audited) and reopens judging. The old snapshot is kept, and every signed record of the
+event (results, certificates, judge records) is revoked, because each describes results
+or scores that may now change. The next publication issues fresh ones, so a judge's
+score commitment always covers the scores behind the results currently published.
 
 ## 11. Limitations
 

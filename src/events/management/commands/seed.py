@@ -104,9 +104,11 @@ class Command(BaseCommand):
             Team.objects.get(public_id=demo.PARTICIPANT_TEAM_ID)
             .memberships.get(is_captain=True).user
         )
-        for user, key in ((judge_a, "judge_a"), (judge_b, "judge_b"), (participant, "participant")):
+        for user, key in ((judge_a, "judge_a"), (judge_b, "judge_b"), (participant, "participant"),
+                          (organizer, "organizer"), (admin, "admin")):
             user.set_password(demo.PASSWORDS[key])
-            user.save(update_fields=["password"])
+            user.email_verified_at = clock.now()  # demo accounts can vote without a mailbox
+            user.save(update_fields=["password", "email_verified_at"])
 
         for key, user in (("organizer", organizer), ("judge_a", judge_a), ("judge_b", judge_b),
                           ("participant", participant), ("admin", admin)):

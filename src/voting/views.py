@@ -46,8 +46,12 @@ def ballot(request, slug):
                     return render(request, "voting/ballot.html", {**context, "check_inbox": True})
                 return render(request, "voting/ballot.html", {**context, "needs_identity": True})
     except DomainError as exc:
+        if mode == Event.VotingMode.AUTHENTICATED:
+            # Signed in but not eligible (unconfirmed email, domain not allowed): say why.
+            return render(request, "voting/ballot.html", {**context, "blocked": exc.message,
+                                                          "unverified": exc.code == "email_unverified"})
         messages.error(request, exc.message)
-        return render(request, "voting/ballot.html", {**context, "needs_identity": mode != "authenticated"})
+        return render(request, "voting/ballot.html", {**context, "needs_identity": True})
 
     if request.method == "POST" and "projects" in request.POST:
         try:

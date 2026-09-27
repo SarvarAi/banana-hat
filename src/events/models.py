@@ -78,6 +78,11 @@ class Event(PublicIdMixin):
     voting_open_at = models.DateTimeField(null=True, blank=True)
     voting_close_at = models.DateTimeField(null=True, blank=True)
     votes_per_voter = models.PositiveSmallIntegerField(default=3)
+    voter_email_domains = models.CharField(
+        max_length=300, blank=True,
+        help_text="Only verified addresses at these domains may vote, e.g. \"example.edu, lab.example.org\". "
+                  "Empty: anyone with a verified address.",
+    )
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
@@ -140,6 +145,13 @@ class Event(PublicIdMixin):
     def voting_closed(self, at=None):
         at = at or clock.now()
         return bool(self.voting_close_at and at >= self.voting_close_at)
+
+    def voter_domain_allowed(self, email: str) -> bool:
+        domains = {d.strip().lower().lstrip("@") for d in self.voter_email_domains.split(",") if d.strip()}
+        if not domains:
+            return True
+        domain = email.rsplit("@", 1)[-1].lower()
+        return domain in domains or any(domain.endswith("." + d) for d in domains)
 
     @property
     def results_public(self):

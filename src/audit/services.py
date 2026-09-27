@@ -33,6 +33,7 @@ def record(action, summary, *, actor=None, event=None, target=None, data=None, s
             actor=actor if getattr(actor, "is_authenticated", False) else None,
             actor_label=actor_label(actor),
             event=event,
+            event_ref=getattr(event, "public_id", "") or "",
             action=action,
             target_type=target_type,
             target_id=target_id,

@@ -37,8 +37,8 @@ def _fmt(dt):
 
 INCOMPATIBLE = {
     Role.JUDGE: {Role.PARTICIPANT, Role.ORGANIZER},
-    Role.PARTICIPANT: {Role.JUDGE},
-    Role.ORGANIZER: {Role.JUDGE},
+    Role.PARTICIPANT: {Role.JUDGE, Role.ORGANIZER},
+    Role.ORGANIZER: {Role.JUDGE, Role.PARTICIPANT},
 }
 
 
@@ -49,7 +49,8 @@ def grant_role(event, user, role, *, actor=None, tracks=None) -> EventRole:
     if clash:
         raise Conflict(
             f"{user.display_name} is already a {', '.join(sorted(clash))} of {event.name} and "
-            f"cannot also be a {role}: judges may not compete, and organizers can read every score.",
+            f"cannot also be a {role}: judges and organizers may not compete, and organizers can "
+            "read every score.",
             code="role_conflict",
         )
     with transaction.atomic():
@@ -183,9 +184,10 @@ def leave_team(team: Team, user):
 def rotate_invite(team: Team, user):
     if not TeamMember.objects.filter(team=team, user=user, is_captain=True).exists():
         raise Forbidden("Only the team captain can reset the invite link.")
-    team.rotate_invite()
-    audit.record("team.invite_rotated", f"{user.display_name} reset the invite link of {team.name}",
-                 actor=user, event=team.event, target=team)
+    with transaction.atomic():
+        team.rotate_invite()
+        audit.record("team.invite_rotated", f"{user.display_name} reset the invite link of {team.name}",
+                     actor=user, event=team.event, target=team)
 
 
 # --- projects -----------------------------------------------------------------------
