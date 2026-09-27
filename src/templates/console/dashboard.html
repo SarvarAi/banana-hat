@@ -1,0 +1,8 @@
+{% extends "console/_base.html" %}
+{% block page_title %}Live progress{% endblock %}
+{% block console %}
+<p class="small muted">Refreshes every five seconds while this tab is visible. <span data-live-stamp></span></p>
+<div data-live-url="{% url 'manage:dashboard-live' event.slug %}" data-live-every="5">
+  {% include "console/_dashboard_body.html" %}
+</div>
+{% endblock %}

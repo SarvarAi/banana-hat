@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Judge invitation · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow">Invitation</div>
+  <h1>Judge {{ invitation.event.name }}</h1>
+  <p class="lede">This invitation is for <strong>{{ invitation.email }}</strong>{% if invitation.tracks.all %}, for {% for t in invitation.tracks.all %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}.</p>
+</section>
+<div class="card narrow">
+  {% if invitation.state != "pending" %}
+    <p>This invitation is <strong>{{ invitation.state }}</strong>.</p>
+  {% elif user.is_authenticated %}
+    {% if user.email|lower == invitation.email %}
+      <form method="post">{% csrf_token %}<button class="btn" type="submit">Accept and become a judge</button></form>
+    {% else %}
+      <p>You are signed in as {{ user.email }}. Sign in as {{ invitation.email }} to accept.</p>
+    {% endif %}
+  {% else %}
+    <p>Sign in, or create an account with {{ invitation.email }}, then come back to this link.</p>
+    <div class="actions"><a class="btn" href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Sign in</a><a class="btn secondary" href="{% url 'accounts:signup' %}?next={{ request.path|urlencode }}">Create account</a></div>
+  {% endif %}
+</div>
+{% endblock %}

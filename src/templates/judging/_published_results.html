@@ -1,0 +1,30 @@
+<section class="card">
+  <div class="card-head">
+    <h2>Results</h2>
+    <span class="small muted">{{ results.method_label }}{% if results.record %} · <a href="{% url 'records:detail' results.record %}">signed record</a>{% endif %}</span>
+  </div>
+  {% if results.prizes %}
+  <div class="grid three" style="margin-bottom:14px">
+    {% for pz in results.prizes %}{% if pz.winner %}
+    <div class="card" style="box-shadow:none">
+      <div class="eyebrow" style="margin:0">{{ pz.name }}{% if pz.value %} · {{ pz.value }}{% endif %}</div>
+      <h3 style="margin:6px 0 0"><a href="/projects/{{ pz.winner }}/">{{ pz.winner_title }}</a></h3>
+      <span class="stamp green">winner</span>
+    </div>
+    {% endif %}{% endfor %}
+  </div>
+  {% endif %}
+  <div class="table-wrap"><table>
+    <thead><tr><th class="num">#</th><th>Project</th><th>Track</th><th class="num">Score</th><th class="num">Reviews</th></tr></thead>
+    <tbody>
+    {% for r in results.overall|slice:":15" %}
+      <tr><td class="num mono">{{ r.rank }}</td><td><a href="/projects/{{ r.project }}/">{{ r.title }}</a><div class="small muted">{{ r.team }}</div></td><td class="small">{{ r.track_name }}</td><td class="num mono">{{ r.score|floatformat:3 }}</td><td class="num">{{ r.reviews }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% if results.community %}
+    <h3 style="margin-top:16px">Community vote</h3>
+    <ol class="small">{% for r in results.community|slice:":5" %}<li>{{ r.title }}: {{ r.votes }} vote{{ r.votes|pluralize }}</li>{% endfor %}</ol>
+  {% endif %}
+  {% if user.is_authenticated %}<p class="small"><a href="{% url 'records:my-certificate' event.slug %}">Took part? Get your signed certificate.</a></p>{% endif %}
+</section>

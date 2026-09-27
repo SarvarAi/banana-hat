@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Compare · {{ event.name }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow"><a href="{% url 'judging:event' event.slug %}">Review queue</a> · Pairwise mode</div>
+  <h1>Which is better?</h1>
+  <p class="lede">Pick the stronger project of the two. No scale to calibrate, just a choice. You have made {{ count }} comparison{{ count|pluralize }}.</p>
+</section>
+{% if pair %}
+<div class="grid two">
+  {% for p in pair %}
+  <form method="post" class="card">{% csrf_token %}
+    <div class="eyebrow">{{ p.track.name }} · <span class="id">{{ p.public_id }}</span></div>
+    <h2>{{ p.title }}</h2>
+    <p>{{ p.summary }}</p>
+    <p class="small muted">{{ p.team.name }}{% if p.repo_url %} · <a href="{{ p.repo_url }}" target="_blank" rel="noopener nofollow">code</a>{% endif %}</p>
+    <input type="hidden" name="winner" value="{{ p.public_id }}">
+    <input type="hidden" name="loser" value="{% if forloop.first %}{{ pair.1.public_id }}{% else %}{{ pair.0.public_id }}{% endif %}">
+    <button class="btn marker" type="submit">This one is better</button>
+  </form>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">No more pairs for you right now{% if not event.judging_open %}, and judging is not open{% endif %}. <a href="{% url 'judging:event' event.slug %}">Back to your queue.</a></div>
+{% endif %}
+{% endblock %}

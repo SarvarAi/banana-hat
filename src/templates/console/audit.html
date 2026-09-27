@@ -1,0 +1,30 @@
+{% extends "console/_base.html" %}
+{% block page_title %}Audit trail{% endblock %}
+{% block console %}
+<div class="notice {% if chain.ok %}good{% else %}bad{% endif %}">
+  {% if chain.ok %}Chain intact: all {{ chain.checked }} entries on this portal verify, each one sealed to the one before. Head <span class="mono">{{ chain.head|slice:":16" }}…</span>
+  {% else %}The chain is broken{% if chain.broken_at %} at entry #{{ chain.broken_at }}{% endif %}: {{ chain.reason }}. Something edited the database outside the application.{% endif %}
+</div>
+<form class="filters" method="get" style="margin-top:14px">
+  <div class="field grow"><label for="q">Search</label><input id="q" type="search" name="q" value="{{ q }}" placeholder="Name, project, id"></div>
+  <div class="field"><label for="category">Kind</label><select id="category" name="category"><option value="">Everything</option>{% for c in categories %}<option value="{{ c }}" {% if c == category %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+  <button class="btn" type="submit">Filter</button>
+  <a class="btn secondary" href="?{% if q %}q={{ q|urlencode }}&{% endif %}{% if category %}category={{ category }}&{% endif %}format=csv">Download CSV</a>
+</form>
+<div class="card table-wrap">
+  <table>
+    <thead><tr><th class="num">#</th><th>When (UTC)</th><th>Who</th><th>What happened</th></tr></thead>
+    <tbody>
+    {% for e in entries %}
+      <tr>
+        <td class="num mono small">{{ e.pk }}</td>
+        <td class="mono small nowrap">{{ e.at|date:"Y-m-d H:i:s" }}</td>
+        <td class="small">{{ e.actor_label|truncatechars:40 }}</td>
+        <td>{{ e.summary }}<div class="small muted"><span class="chip">{{ e.action }}</span>{% if e.target_id %} <span class="mono">{{ e.target_id }}</span>{% endif %}</div></td>
+      </tr>
+    {% empty %}<tr><td colspan="4" class="muted">No entries match.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="small muted">Newest first, up to 300 shown; the CSV has everything. Ballot entries record that a ballot was cast, never what was on it.</p>
+{% endblock %}

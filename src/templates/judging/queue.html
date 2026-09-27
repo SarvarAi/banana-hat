@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Review queue · {{ event.name }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow"><a href="{{ event.get_absolute_url }}">{{ event.name }}</a> · Judge <span class="id">{{ role.public_id }}</span></div>
+  <div class="docket-row">
+    <div>
+      <h1>Your review queue</h1>
+      <p class="lede">{{ done|length }} reviewed, {{ pending|length }} to go.{% if role.tracks.all %} Tracks: {% for t in role.tracks.all %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.{% endif %}</p>
+    </div>
+    {% if not judging_open %}<span class="stamp big closed">{% if event.results_published_at %}Final{% else %}Not open{% endif %}</span>{% endif %}
+  </div>
+</section>
+
+<div class="notice info">You see your own scores and nobody else's, and no rankings until results are published. That is enforced by the server, not just this page: asking the API for another judge's scores returns 403.</div>
+
+<div class="layout" style="margin-top:16px">
+  <div class="stack">
+    <section class="card">
+      <h2>To review</h2>
+      {% for a in pending %}
+        <div class="actions" style="justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--rule-soft)">
+          <div><strong>{{ a.project.title }}</strong><div class="small muted">{{ a.project.track.name|default:"No track" }} · {{ a.project.team.name }}</div></div>
+          {% if judging_open %}<a class="btn" href="{% url 'judging:review' event.slug a.public_id %}">Score it</a>{% endif %}
+        </div>
+      {% empty %}<p class="muted">Nothing waiting. Thank you.</p>{% endfor %}
+    </section>
+    <section class="card">
+      <h2>Reviewed</h2>
+      <div class="table-wrap"><table>
+        <tbody>
+        {% for a in done %}
+          <tr><td><a href="{% url 'judging:review' event.slug a.public_id %}">{{ a.project.title }}</a></td><td class="small muted">{{ a.project.track.name }}</td>
+            <td class="small">{% if a.score.voided_at %}<span class="chip bad">voided by organizers</span>{% else %}{{ a.score.updated_at|date:"Y-m-d H:i" }}{% endif %}</td></tr>
+        {% empty %}<tr><td class="muted">None yet.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </section>
+    {% if recused %}
+    <section class="card"><h2>Recused</h2><ul class="plain-list small">{% for a in recused %}<li>{{ a.project.title }}: {{ a.recusal_reason }}</li>{% endfor %}</ul></section>
+    {% endif %}
+  </div>
+  <aside class="stack">
+    {% if pairwise_enabled %}
+    <section class="card">
+      <h3>Pairwise mode</h3>
+      <p class="small">This event ranks by head-to-head comparisons. You have made {{ comparisons }}.</p>
+      <a class="btn marker" href="{% url 'judging:pairwise' event.slug %}">Compare two projects</a>
+    </section>
+    {% endif %}
+    {% if record %}
+    <section class="card">
+      <h3>Your participation record</h3>
+      <p class="small">Signed by this portal and verifiable by anyone, without revealing your scores.</p>
+      <a class="btn secondary" href="{% url 'records:certificate' record.public_id %}">View and print</a>
+    </section>
+    {% endif %}
+    <section class="card">
+      <h3>Conflict of interest?</h3>
+      <p class="small">If you know a team, recuse yourself from its project from the scoring page. It is recorded and the organizers reassign it.</p>
+    </section>
+  </aside>
+</div>
+{% endblock %}

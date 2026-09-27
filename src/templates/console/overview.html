@@ -1,0 +1,85 @@
+{% extends "console/_base.html" %}
+{% block page_title %}Overview{% endblock %}
+{% block console %}
+<section class="card stats">
+  <div class="stat"><span class="value">{{ counts.projects }}</span><span class="label">Competing projects</span></div>
+  <div class="stat"><span class="value">{{ counts.drafts }}</span><span class="label">Drafts</span></div>
+  <div class="stat"><span class="value">{{ counts.duplicates }}</span><span class="label">Flagged duplicates</span></div>
+  <div class="stat"><span class="value">{{ counts.teams }}</span><span class="label">Teams</span></div>
+  <div class="stat"><span class="value">{{ counts.judges }}</span><span class="label">Judges</span></div>
+  <div class="stat"><span class="value">{{ counts.scores }}</span><span class="label">Counted reviews</span></div>
+</section>
+
+<div class="layout" style="margin-top:16px">
+  <form method="post" class="card" novalidate>
+    {% csrf_token %}
+    <div class="card-head"><h2>Settings</h2><span class="small muted">Changes that affect judging are marked in the audit trail.</span></div>
+    {% include "partials/form_errors.html" %}
+    <fieldset><legend>Event</legend>
+      <div class="form-row">{% with field=form.name %}{% include "partials/field.html" %}{% endwith %}{% with field=form.slug %}{% include "partials/field.html" %}{% endwith %}</div>
+      {% with field=form.tagline %}{% include "partials/field.html" %}{% endwith %}
+      {% with field=form.description %}{% include "partials/field.html" %}{% endwith %}
+      <label class="checks"><span>{{ form.is_listed }} Listed publicly</span></label>
+    </fieldset>
+    <fieldset><legend>Dates (UTC)</legend>
+      <div class="form-row">
+        {% with field=form.submissions_open_at %}{% include "partials/field.html" %}{% endwith %}
+        {% with field=form.submissions_close_at %}{% include "partials/field.html" %}{% endwith %}
+        {% with field=form.judging_close_at %}{% include "partials/field.html" %}{% endwith %}
+      </div>
+    </fieldset>
+    <fieldset><legend>Judging</legend>
+      <div class="form-row">
+        {% with field=form.max_team_size %}{% include "partials/field.html" %}{% endwith %}
+        {% with field=form.reviews_per_project %}{% include "partials/field.html" %}{% endwith %}
+        {% with field=form.judge_max_load %}{% include "partials/field.html" %}{% endwith %}
+      </div>
+      <div class="form-row">
+        {% with field=form.score_min %}{% include "partials/field.html" %}{% endwith %}
+        {% with field=form.score_max %}{% include "partials/field.html" %}{% endwith %}
+        {% with field=form.normalization %}{% include "partials/field.html" %}{% endwith %}
+      </div>
+    </fieldset>
+    <fieldset><legend>Community vote</legend>
+      <div class="form-row">
+        {% with field=form.voting_mode %}{% include "partials/field.html" %}{% endwith %}
+        {% with field=form.votes_per_voter %}{% include "partials/field.html" %}{% endwith %}
+      </div>
+      <div class="form-row">
+        {% with field=form.voting_open_at %}{% include "partials/field.html" %}{% endwith %}
+        {% with field=form.voting_close_at %}{% include "partials/field.html" %}{% endwith %}
+      </div>
+    </fieldset>
+    <button class="btn" type="submit">Save settings</button>
+  </form>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3>Rubric</h3><a class="small" href="{% url 'manage:rubric' event.slug %}">Edit weights</a></div>
+      <table><tbody>{% for c in criteria %}<tr><td>{{ c.name }}</td><td class="num mono">×{{ c.weight|floatformat:"-2" }}</td></tr>{% empty %}<tr><td class="muted">No criteria yet.</td></tr>{% endfor %}</tbody></table>
+    </section>
+    <section class="card">
+      <h3>Tracks</h3>
+      <table><tbody>{% for t in tracks %}<tr><td>{{ t.name }}</td><td class="num small muted">{{ t.n }}</td>
+        <td><form method="post" action="{% url 'manage:tracks' event.slug %}" class="inline-form">{% csrf_token %}<button class="linkish small" name="delete" value="{{ t.public_id }}" data-confirm="Remove the track {{ t.name }}?">remove</button></form></td></tr>{% endfor %}</tbody></table>
+      <form method="post" action="{% url 'manage:tracks' event.slug %}" class="stack" style="margin-top:10px">{% csrf_token %}
+        {{ track_form.name }}<button class="btn secondary small" type="submit">Add track</button>
+      </form>
+    </section>
+    <section class="card">
+      <h3>Prizes</h3>
+      <table><tbody>{% for pz in prizes %}<tr><td>{{ pz.name }}<div class="small muted">{{ pz.track.name|default:"Overall" }} · {{ pz.value }}</div></td>
+        <td><form method="post" action="{% url 'manage:prizes' event.slug %}" class="inline-form">{% csrf_token %}<button class="linkish small" name="delete" value="{{ pz.public_id }}" data-confirm="Remove the prize {{ pz.name }}?">remove</button></form></td></tr>{% endfor %}</tbody></table>
+      <form method="post" action="{% url 'manage:prizes' event.slug %}" style="margin-top:10px">{% csrf_token %}
+        <div class="field">{{ prize_form.name.label_tag }}{{ prize_form.name }}</div>
+        <div class="form-row"><div class="field">{{ prize_form.value.label_tag }}{{ prize_form.value }}</div><div class="field">{{ prize_form.track.label_tag }}{{ prize_form.track }}</div></div>
+        <button class="btn secondary small" type="submit">Add prize</button>
+      </form>
+    </section>
+    <section class="card">
+      <h3>Organizers</h3>
+      <ul class="plain-list small">{% for r in organizers %}<li>{{ r.user.display_name }} <span class="muted">{{ r.user.email }}</span></li>{% endfor %}</ul>
+    </section>
+  </aside>
+</div>
+{% endblock %}

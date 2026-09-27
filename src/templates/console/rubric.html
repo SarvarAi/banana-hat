@@ -1,0 +1,39 @@
+{% extends "console/_base.html" %}
+{% block page_title %}Rubric{% endblock %}
+{% block console %}
+<div class="layout">
+  <form method="post" class="card">
+    {% csrf_token %}
+    <div class="card-head"><h2>Rubric</h2><span class="small muted">Scale {{ event.score_min }}–{{ event.score_max }}</span></div>
+    <p class="small">Weights are relative: 2, 1, 1 makes the first criterion count for half. Change them at any time; rankings recompute and the change is logged. {% if locked %}Judges have already scored, so criteria can be renamed and reweighted but not added or removed.{% endif %}</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Key</th><th>Name</th><th class="num">Weight</th><th class="num">Share</th><th>Guidance for judges</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><input type="text" name="key" value="{{ row.c.key }}" readonly class="mono" aria-label="Key"></td>
+          <td><input type="text" name="name" value="{{ row.c.name }}" aria-label="Name"></td>
+          <td class="num"><input type="number" name="weight" value="{{ row.c.weight|floatformat:'-2' }}" step="0.01" min="0.01" aria-label="Weight" style="width:90px"></td>
+          <td class="num mono">{{ row.share }}%</td>
+          <td><input type="text" name="description" value="{{ row.c.description }}" aria-label="Guidance"></td>
+        </tr>
+        {% endfor %}
+        {% if not locked %}
+        <tr>
+          <td><input type="text" name="key" placeholder="new_key" class="mono" aria-label="New key"></td>
+          <td><input type="text" name="name" placeholder="Add a criterion" aria-label="New name"></td>
+          <td class="num"><input type="number" name="weight" value="1" step="0.01" min="0.01" aria-label="New weight" style="width:90px"></td>
+          <td></td>
+          <td><input type="text" name="description" aria-label="New guidance"></td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table></div>
+    <div class="form-actions"><button class="btn" type="submit">Save rubric</button><a class="btn secondary" href="{% url 'manage:overview' event.slug %}">Back</a></div>
+  </form>
+  <aside class="card">
+    <h3>Why weights are applied late</h3>
+    <p class="small">Judges score each criterion on its own. The weighted total is computed when results are, so reweighting never asks anyone to re-score, and the scorecards stay a faithful record of what each judge said.</p>
+  </aside>
+</div>
+{% endblock %}

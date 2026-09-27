@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Score {{ project.title }} · {{ event.name }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow"><a href="{% url 'judging:event' event.slug %}">Review queue</a> · {{ project.track.name|default:"No track" }} · <span class="id">{{ project.public_id }}</span></div>
+  <div class="docket-row">
+    <div>
+      <h1>{{ project.title }}</h1>
+      <p class="lede">{{ project.summary }}</p>
+    </div>
+    {% if score %}<span class="stamp big {% if score.voided_at %}red{% else %}done{% endif %}">{% if score.voided_at %}Voided{% else %}Scored{% endif %}</span>{% endif %}
+  </div>
+  <dl class="meta">
+    <div><dt>Team</dt><dd>{{ project.team.name }}</dd></div>
+    {% if project.repo_url %}<div><dt>Code</dt><dd><a href="{{ project.repo_url }}" rel="nofollow noopener" target="_blank">{{ project.repo_url|cut:"https://"|truncatechars:44 }}</a></dd></div>{% endif %}
+    {% if project.demo_url %}<div><dt>Demo</dt><dd><a href="{{ project.demo_url }}" rel="nofollow noopener" target="_blank">open</a></dd></div>{% endif %}
+    {% if project.video_url %}<div><dt>Video</dt><dd><a href="{{ project.video_url }}" rel="nofollow noopener" target="_blank">watch</a></dd></div>{% endif %}
+  </dl>
+</section>
+
+<div class="layout">
+  <form method="post" class="scorecard-form">
+    {% csrf_token %}
+    {% if error %}<div class="notice bad" role="alert" style="margin-bottom:12px">{{ error }}</div>{% endif %}
+    <fieldset class="bare" {% if not judging_open or score.voided_at %}disabled{% endif %}>
+      <div class="scorecard">
+        {% for row in rows %}
+        <div class="scorecard-row" data-criterion="{{ row.c.key }}" data-weight="{{ row.c.weight }}" role="radiogroup" aria-labelledby="lbl-{{ row.c.key }}">
+          <div class="scorecard-label">
+            <strong id="lbl-{{ row.c.key }}">{{ row.c.name }}</strong>
+            <span class="weight">weight ×{{ row.c.weight|floatformat:"-2" }}</span>
+            {% if row.c.description %}<p>{{ row.c.description }}</p>{% endif %}
+          </div>
+          <div class="scorecard-cells">
+            {% for n in scale %}
+            <label><input type="radio" name="{{ row.name }}" value="{{ n }}" {% if row.value == n|stringformat:"d" %}checked{% endif %} required><span>{{ n }}</span></label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+        <div class="scorecard-total"><span>Weighted total</span><output data-total>–</output></div>
+      </div>
+      <div class="field" style="margin-top:16px">
+        <label for="comment">Comment for the organizers</label>
+        <textarea id="comment" name="comment" maxlength="4000" placeholder="What stood out, what didn't work. Other judges never see this.">{{ comment }}</textarea>
+      </div>
+      {% if judging_open %}
+      <div class="form-actions">
+        <button class="btn" type="submit" name="next">Save and next</button>
+        <button class="btn secondary" type="submit">Save</button>
+      </div>
+      {% endif %}
+    </fieldset>
+  </form>
+
+  <aside class="stack">
+    <section class="card">
+      <h3>How to score</h3>
+      <p class="small">{{ event.score_min }} is poor, {{ event.score_max }} is outstanding. Score each criterion on its own; the weights are applied later. Harsh or generous, just be consistent: the ranking corrects for each judge's overall level.</p>
+    </section>
+    {% if judging_open and assignment.status != "recused" %}
+    <form method="post" action="{% url 'judging:recuse' event.slug assignment.public_id %}" class="card">{% csrf_token %}
+      <h3>Recuse</h3>
+      <p class="small">Know this team? Step aside. Any score you gave is voided and the project is reassigned.</p>
+      <div class="field"><label for="reason">Reason</label><input id="reason" type="text" name="reason" required placeholder="e.g. I mentor one of the members"></div>
+      <button class="btn danger small" type="submit" data-confirm="Recuse from {{ project.title }}?">Recuse myself</button>
+    </form>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

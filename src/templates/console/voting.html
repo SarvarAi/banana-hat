@@ -1,0 +1,71 @@
+{% extends "console/_base.html" %}
+{% block page_title %}Community{% endblock %}
+{% block console %}
+{% if not event.voting_enabled %}
+  <div class="notice info">This event has no community vote. Turn it on in the settings: signed-in users, verified email, or printed single-use ballot links.</div>
+{% endif %}
+<section class="card stats">
+  <div class="stat"><span class="value">{{ turnout.total }}</span><span class="label">Ballots cast</span></div>
+  <div class="stat"><span class="value">{{ turnout.counted }}</span><span class="label">Counted</span></div>
+  <div class="stat"><span class="value">{{ turnout.flagged }}</span><span class="label">Held for review</span></div>
+  <div class="stat"><span class="value">{{ turnout.void }}</span><span class="label">Void</span></div>
+</section>
+
+<div class="layout" style="margin-top:16px">
+  <div class="stack">
+    <section class="card">
+      <h2>Totals</h2>
+      {% if tally %}
+        <div class="table-wrap"><table><thead><tr><th class="num">#</th><th>Project</th><th class="num">Votes</th></tr></thead>
+        <tbody>{% for r in tally %}<tr><td class="num mono">{{ r.rank }}</td><td>{{ r.title }} <span class="small muted">{{ r.team }}</span></td><td class="num mono">{{ r.votes }}</td></tr>{% endfor %}</tbody></table></div>
+      {% else %}
+        <div class="notice info">Totals are hidden from everyone, you included, until voting closes{% if event.voting_close_at %} at <span class="mono">{{ event.voting_close_at|date:"Y-m-d H:i" }} UTC</span>{% endif %}. A running score gives campaigners a target and tempts late tactical voting; turnout and review flags are all that is shown until then.</div>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h2>Held for review ({{ flagged|length }})</h2>
+      <p class="small">Ballots are held, never discarded, when they look automated or coordinated. Counting one is a judgement call, and it is logged.</p>
+      {% for b in flagged %}
+        <div class="actions" style="padding:8px 0;border-bottom:1px solid var(--rule-soft);justify-content:space-between">
+          <div class="small"><span class="mono">{{ b.public_id }}</span> · {{ b.get_kind_display }}{% if b.email_hint %} · {{ b.email_hint }}{% endif %} · {{ b.cast_at|date:"H:i" }}
+            <div>{% for f in b.flags %}<span class="chip warn">{{ f }}</span> {% endfor %}</div></div>
+          <form method="post" class="actions">{% csrf_token %}<input type="hidden" name="ballot" value="{{ b.public_id }}">
+            <button class="btn secondary small" name="action" value="count">Count it</button>
+            <button class="btn danger small" name="action" value="void">Void it</button></form>
+        </div>
+      {% empty %}<p class="muted small">Nothing held.</p>{% endfor %}
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <h3>Settings</h3>
+      <dl class="kv small">
+        <dt>Mode</dt><dd>{{ event.get_voting_mode_display }}</dd>
+        <dt>Opens</dt><dd class="mono">{{ event.voting_open_at|date:"Y-m-d H:i"|default:"–" }}</dd>
+        <dt>Closes</dt><dd class="mono">{{ event.voting_close_at|date:"Y-m-d H:i"|default:"–" }}</dd>
+        <dt>Picks per voter</dt><dd>{{ event.votes_per_voter }}</dd>
+      </dl>
+      {% if event.voting_enabled %}<a class="btn secondary small" href="{% url 'voting:ballot' event.slug %}">See the ballot</a>{% endif %}
+    </section>
+    {% if event.voting_mode == "link" %}
+    <form method="post" class="card">{% csrf_token %}<input type="hidden" name="action" value="links">
+      <h3>Ballot links</h3>
+      <p class="small">Single-use links for people without accounts, for example printed as QR codes on table cards. Each is shown once.</p>
+      <div class="form-row"><div class="field"><label for="count">How many</label><input id="count" type="number" name="count" value="20" min="1" max="1000"></div>
+      <div class="field"><label for="label">Label</label><input id="label" type="text" name="label" value="Table"></div></div>
+      <div class="actions"><button class="btn secondary small" name="format" value="page">Create</button><button class="btn secondary small" name="format" value="csv">Create as CSV</button></div>
+    </form>
+    {% if links %}<section class="card"><h3>New links</h3><ul class="plain-list small mono">{% for label, url in links %}<li>{{ label }}: {{ url }}</li>{% endfor %}</ul></section>{% endif %}
+    {% endif %}
+    {% if clusters %}
+    <section class="card">
+      <h3>Busy networks</h3>
+      <p class="small muted">Networks (hashed; addresses are never stored) with three or more ballots.</p>
+      <ul class="plain-list small">{% for c in clusters %}<li class="mono">{{ c.network_digest|slice:":10" }}… · {{ c.n }} ballots, {{ c.flagged }} held</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

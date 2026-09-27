@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Import an event · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow">Organizer console</div>
+  <h1>Import an event</h1>
+  <p class="lede">Upload a JSON file in the DOGFOOD fixture format (the shape of fixtures.json). Everything loads in one transaction: all of it, or none of it and a list of what was wrong.</p>
+</section>
+{% if problems %}
+<div class="notice bad"><strong>Nothing was imported.</strong><ul>{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul></div>
+{% endif %}
+{% if report %}
+<div class="notice good"><strong>Imported <a href="{% url 'manage:overview' report.event.slug %}">{{ report.event.name }}</a>.</strong>
+  {% for k, v in report.counts.items %}{{ v }} {{ k }}{% if not forloop.last %}, {% endif %}{% endfor %}.
+  {% if report.warnings %}<ul class="small">{% for w in report.warnings %}<li>{{ w }}</li>{% endfor %}</ul>{% endif %}</div>
+{% endif %}
+<form method="post" enctype="multipart/form-data" class="card narrow" style="margin-top:14px">{% csrf_token %}
+  <div class="field"><label for="file">File</label><input id="file" type="file" name="file" accept="application/json,.json" required></div>
+  <button class="btn" type="submit">Import</button>
+</form>
+{% endblock %}

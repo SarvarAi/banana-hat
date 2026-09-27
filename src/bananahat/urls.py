@@ -15,8 +15,10 @@ urlpatterns = [
     path("", event_views.home, name="home"),
     path("healthz", core_views.healthz, name="healthz"),
     path("accounts/", include("accounts.urls")),
+    path("manage/", include("console.urls")),
     path("admin/", admin.site.urls),
     path("", include("events.urls")),
+    path("", include("judging.urls")),
     path("", include("voting.urls")),
     path("", include("records.urls")),
 ]

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Judging · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket"><div class="eyebrow">Judging</div><h1>Your judging</h1></section>
+{% if rows %}
+<div class="grid three">
+  {% for r in rows %}
+  <a class="card plain-link" href="{% url 'judging:event' r.event.slug %}">
+    <div class="card-head"><h3>{{ r.event.name }}</h3><span class="stamp {{ r.event.phase }}">{{ r.event.phase }}</span></div>
+    <progress max="{{ r.total|default:1 }}" value="{{ r.done }}" aria-label="progress"></progress>
+    <p class="small">{{ r.done }} of {{ r.total }} reviewed</p>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">You are not judging any event. Organizers invite judges by email; the invitation link makes you one.</div>
+{% endif %}
+{% endblock %}

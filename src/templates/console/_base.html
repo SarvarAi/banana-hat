@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{% block page_title %}Console{% endblock %} · {{ event.name }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow"><span>Organizer console</span><span class="id">{{ event.public_id }}</span>{% if not event.is_listed %}<span class="chip">draft, not public</span>{% endif %}</div>
+  <div class="docket-row">
+    <h1><a href="{{ event.get_absolute_url }}" class="plain-link">{{ event.name }}</a></h1>
+    <span class="stamp big {{ event.phase }}">{{ event.phase }}</span>
+  </div>
+</section>
+<nav class="tabs" aria-label="Console sections">
+  {% for key, label in tabs %}<a href="{% url 'manage:'|add:key event.slug %}" {% if tab == key %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+</nav>
+{% block console %}{% endblock %}
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "console/_base.html" %}
+{% block page_title %}Data and webhooks{% endblock %}
+{% block console %}
+<div class="grid two">
+  <section class="card">
+    <h2>Export</h2>
+    <p class="small">Everything leaves in open formats. <code>event.json</code> is the DOGFOOD fixture format plus rubric weights, prizes and pending assignments: import it into another Banana Hat, or any portal that reads fixtures.json.</p>
+    <ul class="plain-list">
+      <li><a href="{% url 'api:event-export' event.public_id 'event.json' %}">event.json</a> <span class="small muted">the whole event, re-importable</span></li>
+      <li><a href="{% url 'api:event-export' event.public_id 'scores.csv' %}">scores.csv</a> <span class="small muted">one row per review</span></li>
+      <li><a href="{% url 'api:event-export' event.public_id 'results.csv' %}">results.csv</a> <span class="small muted">ranking under {{ event.get_normalization_display }}</span></li>
+      <li><a href="{% url 'api:event-export' event.public_id 'projects.csv' %}">projects.csv</a> <span class="small muted">including drafts and duplicates</span></li>
+      <li><a href="{% url 'manage:audit' event.slug %}?format=csv">audit.csv</a> <span class="small muted">the audit trail</span></li>
+    </ul>
+    <h3>Import</h3>
+    <p class="small">New events can be created from a fixture-format file on the <a href="{% url 'manage:import' %}">import page</a>, or with <code>POST /api/v1/events/import</code>.</p>
+    <h3>Embed the gallery</h3>
+    <pre class="block">&lt;div data-bananahat-gallery="{{ request.scheme }}://{{ request.get_host }}/embed/{{ event.slug }}/"&gt;&lt;/div&gt;
+&lt;script src="{{ request.scheme }}://{{ request.get_host }}/static/js/embed.js" async&gt;&lt;/script&gt;</pre>
+    <p class="small muted">Or a plain iframe of <a href="{% url 'events:embed' event.slug %}">/embed/{{ event.slug }}/</a>. Options: <code>?track=trk_01&amp;limit=12&amp;theme=dark</code>.</p>
+  </section>
+
+  <section class="card">
+    <h2>Webhooks</h2>
+    <p class="small">POSTed as JSON, signed with HMAC-SHA256 in <code>X-BananaHat-Signature</code>, retried with backoff for up to {{ 8 }} attempts. Scores are never sent; <code>judging.progress</code> carries counts only.</p>
+    {% for h in hooks %}
+      <div style="border:1px solid var(--rule);border-radius:var(--radius-sm);padding:10px;margin-bottom:10px">
+        <div class="actions" style="justify-content:space-between"><strong class="mono small">{{ h.url }}</strong>
+          <form method="post" class="actions">{% csrf_token %}<input type="hidden" name="webhook" value="{{ h.public_id }}">
+            <button class="btn secondary small" name="action" value="ping">Send test</button>
+            <button class="btn danger small" name="action" value="delete_webhook" data-confirm="Remove this webhook?">Remove</button></form></div>
+        <div class="small muted">{{ h.description }} · {% if h.event_types %}{{ h.event_types|join:", " }}{% else %}every event{% endif %}</div>
+        <div class="small">Secret: <input type="text" readonly value="{{ h.secret }}" class="mono select-on-focus" aria-label="Signing secret" style="max-width:320px;padding:3px 6px"></div>
+        <table class="small" style="margin-top:6px"><tbody>{% for d in h.deliveries.all|slice:":5" %}<tr><td class="mono">{{ d.created_at|date:"H:i:s" }}</td><td>{{ d.event_type }}</td><td><span class="chip {% if d.status == 'succeeded' %}good{% elif d.status == 'dead' %}bad{% else %}warn{% endif %}">{{ d.get_status_display }}</span></td><td class="muted">{{ d.last_status_code|default:"" }} {{ d.last_error|truncatechars:40 }}</td></tr>{% endfor %}</tbody></table>
+      </div>
+    {% empty %}<p class="muted small">No webhooks yet.</p>{% endfor %}
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="webhook">
+      <div class="field"><label for="wh-url">Receiver URL</label><input id="wh-url" type="url" name="url" placeholder="https://example.org/hooks/bananahat" required></div>
+      <div class="field"><label for="wh-desc">Description</label><input id="wh-desc" type="text" name="description"></div>
+      <div class="field"><span class="label">Events</span><div class="checks small">{% for key, label in event_types %}{% if key != "ping" %}<label title="{{ label }}"><input type="checkbox" name="event_types" value="{{ key }}"> {{ key }}</label>{% endif %}{% endfor %}</div><span class="help">None ticked means every event.</span></div>
+      <button class="btn secondary" type="submit">Add webhook</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

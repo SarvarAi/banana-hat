@@ -1,0 +1,84 @@
+{% extends "console/_base.html" %}
+{% block page_title %}Results{% endblock %}
+{% block console %}
+{% if published %}
+  <div class="notice good">Results were published on <span class="mono">{{ event.results_published_at|date:"Y-m-d H:i" }} UTC</span> using <strong>{{ published.method_label }}</strong>. The public sees that frozen snapshot{% if published.record %}, signed as <a href="{% url 'records:detail' published.record %}">{{ published.record }}</a>{% endif %}.</div>
+{% endif %}
+
+<div class="layout" style="margin-top:12px">
+  <section class="card">
+    <div class="card-head">
+      <h2>Ranking · {{ results.result.method|default:method }}</h2>
+      <form method="get" class="actions"><label class="small" for="method">Method</label>
+        <select id="method" name="method">{% for key, label in methods.items %}<option value="{{ key }}" {% if key == method %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        <button class="btn secondary small" type="submit">Show</button></form>
+    </div>
+    {% if results.ties %}
+      <div class="notice">{% for t in results.ties %}Places {{ t.ranks.0 }} and {{ t.ranks.1 }} are within each other's 95% interval (gap {{ t.gap }}): the evidence does not really separate them. {% endfor %}</div>
+    {% endif %}
+    <div class="table-wrap"><table>
+      <thead><tr><th class="num">#</th><th>Project</th><th>Track</th><th class="num">Score</th>{% if results.on_scale %}<th class="num">95% interval</th>{% endif %}<th class="num">Raw mean</th><th class="num">Reviews</th><th class="num">vs raw</th></tr></thead>
+      <tbody>
+      {% for r in results.rows %}
+        <tr>
+          <td class="num mono">{{ r.rank }}</td>
+          <td><a href="{{ r.project.get_absolute_url }}">{{ r.project.title }}</a><div class="small muted">{{ r.project.team.name }}</div></td>
+          <td class="small">{{ r.project.track.name|default:"–" }} <span class="muted">#{{ r.track_rank }}</span></td>
+          <td class="num mono"><strong>{{ r.score|floatformat:3 }}</strong></td>
+          {% if results.on_scale %}<td class="num mono small">{% if r.ci %}{{ r.ci.0|floatformat:2 }}–{{ r.ci.1|floatformat:2 }}{% endif %}</td>{% endif %}
+          <td class="num mono">{{ r.raw_mean|floatformat:3 }}</td>
+          <td class="num">{{ r.n }}</td>
+          <td class="num mono small">{% if r.shift %}{% if r.shift > 0 %}<span class="chip good">▲{{ r.shift }}</span>{% else %}<span class="chip bad">▼{{ r.shift|stringformat:"d"|slice:"1:" }}</span>{% endif %}{% endif %}</td>
+        </tr>
+      {% empty %}<tr><td colspan="8" class="muted">No counted reviews yet.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+    {% if results.excluded %}
+      <h3 style="margin-top:16px">Not ranked</h3>
+      <ul class="plain-list small">{% for x in results.excluded %}<li><span class="mono">{{ x.project }}</span> {{ x.title }}: {{ x.reason }}</li>{% endfor %}</ul>
+    {% endif %}
+  </section>
+
+  <aside class="stack">
+    <section class="card">
+      <h3>Publish</h3>
+      {% if event.results_published_at %}
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="unpublish">
+          <div class="field"><label for="reason">Reason for taking results down</label><input id="reason" type="text" name="reason" required></div>
+          <button class="btn danger" data-confirm="Take the published results down? Judging reopens.">Unpublish</button></form>
+      {% else %}
+        <p class="small">Publishing freezes this ranking, closes judging, fills in prize winners, signs the results and issues every judge a signed participation record.</p>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="publish"><input type="hidden" name="method" value="{{ method }}">
+          <button class="btn marker" data-confirm="Publish results using {{ method }}? The public will see them immediately.">Publish using this method</button></form>
+      {% endif %}
+    </section>
+    <section class="card">
+      <h3>Methods compared</h3>
+      <p class="small muted">Rank correlation with the raw mean (1.00 = identical order).</p>
+      <table><tbody>{% for key, m in comparison.items %}<tr><td class="small">{{ m.label }}{% if key == event.normalization %} <span class="chip hl">default</span>{% endif %}</td><td class="num mono">{{ m.spearman_vs_raw|floatformat:3 }}</td></tr>{% endfor %}</tbody></table>
+      <form method="post" class="actions" style="margin-top:10px">{% csrf_token %}<input type="hidden" name="action" value="default_method">
+        <select name="method" aria-label="Default method">{% for key, label in methods.items %}<option value="{{ key }}" {% if key == event.normalization %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        <button class="btn secondary small">Make default</button></form>
+    </section>
+    {% if results.result.diagnostics %}
+    <section class="card">
+      <h3>Diagnostics</h3>
+      <dl class="kv small">{% for k, v in results.result.diagnostics.items %}<dt>{{ k }}</dt><dd class="mono">{{ v|floatformat:3 }}</dd>{% endfor %}</dl>
+    </section>
+    {% endif %}
+    <section class="card">
+      <h3>Exports</h3>
+      <ul class="plain-list small">
+        <li><a href="{% url 'api:event-export' event.public_id 'results.csv' %}?method={{ method }}">results.csv</a></li>
+        <li><a href="{% url 'api:event-export' event.public_id 'scores.csv' %}">scores.csv</a></li>
+      </ul>
+    </section>
+    {% if records %}
+    <section class="card">
+      <h3>Signed records</h3>
+      <ul class="plain-list small">{% for r in records %}<li><a href="{% url 'records:detail' r.public_id %}">{{ r.get_kind_display }}</a>{% if r.subject %} · {{ r.subject.name }}{% endif %}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

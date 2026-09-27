@@ -1,0 +1,45 @@
+{% extends "console/_base.html" %}
+{% block page_title %}Judges{% endblock %}
+{% block console %}
+<div class="layout">
+  <section class="card">
+    <div class="card-head"><h2>Judges ({{ roles|length }})</h2><a class="small" href="{% url 'manage:assignments' event.slug %}">Assign projects</a></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Judge</th><th>Tracks</th><th class="num">Done</th><th></th></tr></thead>
+      <tbody>
+      {% for r in roles %}
+        <tr>
+          <td><strong>{{ r.user.name }}</strong><div class="small muted">{{ r.user.email }} · <span class="mono">{{ r.public_id }}</span></div></td>
+          <td>
+            <form method="post" class="actions">{% csrf_token %}<input type="hidden" name="action" value="tracks"><input type="hidden" name="judge" value="{{ r.public_id }}">
+              <div class="checks small">{% for t in tracks %}<label><input type="checkbox" name="tracks" value="{{ t.public_id }}" {% if t in r.tracks.all %}checked{% endif %}> {{ t.name }}</label>{% endfor %}</div>
+              <button class="btn secondary small" type="submit">Save</button>
+            </form>
+          </td>
+          <td class="num">{{ r.done }}/{{ r.total }}</td>
+          <td><form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="remove"><input type="hidden" name="judge" value="{{ r.public_id }}"><button class="linkish small" data-confirm="Remove {{ r.user.name }} as a judge?">remove</button></form></td>
+        </tr>
+      {% empty %}<tr><td colspan="4" class="muted">No judges yet. Invite some.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  <aside class="stack">
+    <form method="post" class="card">{% csrf_token %}
+      <h3>Invite a judge</h3>
+      <input type="hidden" name="action" value="invite">
+      <div class="field"><label for="inv-email">Email</label><input id="inv-email" type="email" name="email" required></div>
+      <div class="field"><label for="inv-name">Name</label><input id="inv-name" type="text" name="name"></div>
+      <div class="field"><span class="label">Tracks</span><div class="checks small">{% for t in tracks %}<label><input type="checkbox" name="tracks" value="{{ t.public_id }}"> {{ t.name }}</label>{% endfor %}</div><span class="help">None ticked means every track.</span></div>
+      <button class="btn" type="submit">Send invitation</button>
+      <p class="small muted" style="margin-top:8px">The link works for 14 days and only for that address. {% if DEMO_MODE %}In the demo, read it in Mailpit at localhost:8025.{% endif %}</p>
+    </form>
+    <section class="card">
+      <h3>Invitations</h3>
+      {% for inv in invitations %}
+        <div class="small" style="padding:6px 0;border-bottom:1px solid var(--rule-soft)"><strong>{{ inv.email }}</strong> <span class="stamp {% if inv.state == 'accepted' %}green{% elif inv.state == 'pending' %}amber{% else %}grey{% endif %}">{{ inv.state }}</span>
+          {% if inv.state == "pending" %}<form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="revoke"><input type="hidden" name="invitation" value="{{ inv.pk }}"><button class="linkish small">revoke</button></form>{% endif %}</div>
+      {% empty %}<p class="muted small">None sent from here. The fixture judges were imported.</p>{% endfor %}
+    </section>
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "console/_base.html" %}
+{% block page_title %}Submissions{% endblock %}
+{% block console %}
+<div class="actions" style="margin-bottom:14px">
+  <a class="btn small {% if not status %}marker{% else %}secondary{% endif %}" href="?">All</a>
+  <a class="btn small {% if status == 'submitted' %}marker{% else %}secondary{% endif %}" href="?status=submitted">Submitted</a>
+  <a class="btn small {% if status == 'draft' %}marker{% else %}secondary{% endif %}" href="?status=draft">Drafts</a>
+  <a class="btn small {% if status == 'withdrawn' %}marker{% else %}secondary{% endif %}" href="?status=withdrawn">Withdrawn</a>
+  <a class="btn small {% if status == 'duplicates' %}marker{% else %}secondary{% endif %}" href="?status=duplicates">Flagged duplicates</a>
+</div>
+<div class="card table-wrap">
+  <table>
+    <thead><tr><th>Project</th><th>Team</th><th>Track</th><th>Status</th><th>Submitted (UTC)</th><th class="num">Reviews</th><th></th></tr></thead>
+    <tbody>
+    {% for p in projects %}
+      <tr>
+        <td><a href="{{ p.get_absolute_url }}">{{ p.title }}</a><div class="mono small muted">{{ p.public_id }}</div>
+          {% if p.duplicate_of %}<div class="small"><span class="chip bad">duplicate of {{ p.duplicate_of.public_id }}</span></div>{% endif %}</td>
+        <td>{{ p.team.name }}<div class="mono small muted">{{ p.team.public_id }}</div></td>
+        <td class="small">{{ p.track.name|default:"–" }}</td>
+        <td><span class="stamp {{ p.status }}">{{ p.get_status_display }}</span></td>
+        <td class="mono small nowrap">{{ p.submitted_at|date:"Y-m-d H:i"|default:"–" }}</td>
+        <td class="num">{{ p.reviews }}</td>
+        <td>
+          <form method="post" action="{% url 'manage:project-action' event.slug p.public_id %}" class="actions">{% csrf_token %}
+            {% if p.duplicate_of %}
+              <button class="btn secondary small" name="action" value="make_canonical" data-confirm="Make {{ p.public_id }} the competing copy instead of {{ p.duplicate_of.public_id }}?">Make this the competing copy</button>
+              <button class="btn secondary small" name="action" value="confirm_duplicate">Confirm duplicate</button>
+            {% elif p.status != "withdrawn" %}
+              <button class="btn danger small" name="action" value="withdraw" data-confirm="Withdraw {{ p.title }}? It stops competing.">Withdraw</button>
+            {% endif %}
+          </form>
+        </td>
+      </tr>
+    {% empty %}<tr><td colspan="7" class="muted">Nothing here.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="grid two" style="margin-top:16px">
+  <form method="post" class="card">{% csrf_token %}
+    <h2>Grant a deadline extension</h2>
+    <p class="small">For one team only, recorded with your reason in the audit trail. Everyone else stays locked out at the deadline.</p>
+    {% include "partials/form_errors.html" with form=extension_form %}
+    {% for field in extension_form %}{% include "partials/field.html" %}{% endfor %}
+    <button class="btn secondary" type="submit">Grant extension</button>
+  </form>
+  <section class="card">
+    <h2>Extensions granted</h2>
+    {% for x in extensions %}<p class="small"><strong>{{ x.team.name }}</strong> until <span class="mono">{{ x.until|date:"Y-m-d H:i" }} UTC</span> · {{ x.reason }} <span class="muted">({{ x.granted_by.display_name }})</span></p>{% empty %}<p class="muted small">None.</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}

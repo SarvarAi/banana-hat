@@ -1,0 +1,59 @@
+{% extends "console/_base.html" %}
+{% block page_title %}Assignments{% endblock %}
+{% block console %}
+<div class="layout">
+  <section class="card">
+    <div class="card-head"><h2>Who reviews what</h2><span class="small muted">{{ projects|length }} competing projects · target {{ event.reviews_per_project }} reviews each</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Project</th><th>Reviews</th><th>Judges</th></tr></thead>
+      <tbody>
+      {% for p in projects %}
+        <tr>
+          <td><a href="{{ p.get_absolute_url }}">{{ p.title }}</a><div class="small muted">{{ p.track.name|default:"No track" }}</div></td>
+          <td><div class="tally" aria-label="review coverage">{% for a in p.assignments.all %}{% if a.status == "done" %}<i class="done" title="{{ a.judge.user.name }}: reviewed"></i>{% elif a.status == "pending" %}<i title="{{ a.judge.user.name }}: pending"></i>{% endif %}{% endfor %}</div></td>
+          <td class="small">
+            {% for a in p.assignments.all %}
+              <div class="actions" style="gap:6px">
+                <span>{{ a.judge.user.name }}</span>
+                <span class="stamp {{ a.status }}">{{ a.get_status_display }}</span>
+                {% if a.status == "pending" %}
+                  <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="unassign"><input type="hidden" name="assignment" value="{{ a.public_id }}"><button class="linkish small">unassign</button></form>
+                {% elif a.status == "done" and a.score and not a.score.voided_at %}
+                  <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="void"><input type="hidden" name="score" value="{{ a.score.public_id }}"><input type="text" name="reason" placeholder="reason to void" required style="width:140px;padding:3px 6px"><button class="linkish small" data-confirm="Void this score? It will stop counting.">void</button></form>
+                {% elif a.score.voided_at %}<span class="chip bad">voided</span>{% endif %}
+                {% if a.status == "recused" %}<span class="muted">({{ a.recusal_reason }})</span>{% endif %}
+              </div>
+            {% endfor %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  <aside class="stack">
+    <form method="post" class="card">{% csrf_token %}
+      <h3>Automatic assignment</h3>
+      <p class="small">Tops every project up to the target from judges who cover its track, most constrained projects first, least loaded judges first, varied pairings so judge bias stays estimable. <a href="#" class="muted">Details in JUDGING.md.</a></p>
+      <div class="form-row">
+        <div class="field"><label for="target">Reviews per project</label><input id="target" type="number" name="target" min="1" max="20" value="{{ event.reviews_per_project }}"></div>
+        <div class="field"><label for="max_load">Max per judge</label><input id="max_load" type="number" name="max_load" min="1" value="{{ event.judge_max_load|default_if_none:'' }}" placeholder="no limit"></div>
+      </div>
+      <div class="actions"><button class="btn secondary" name="action" value="preview">Preview</button><button class="btn" name="action" value="run">Assign</button></div>
+    </form>
+    {% if preview %}
+    <section class="card">
+      <h3>Preview: {{ preview.created|length }} new assignment{{ preview.created|length|pluralize }}</h3>
+      <ul class="plain-list small">{% for judge, project in preview.created %}<li>{{ judge.user.name }} → {{ project.title }}</li>{% empty %}<li class="muted">Nothing to do: every project has its reviews.</li>{% endfor %}</ul>
+      {% for s in preview.shortfalls %}<p class="small"><span class="chip warn">{{ s.project.title }}: {{ s.missing }} short</span> {{ s.reason }}</p>{% endfor %}
+    </section>
+    {% endif %}
+    <form method="post" class="card">{% csrf_token %}
+      <h3>Assign by hand</h3>
+      <input type="hidden" name="action" value="assign">
+      <div class="field"><label for="m-judge">Judge</label><select id="m-judge" name="judge">{% for j in judges %}<option value="{{ j.public_id }}">{{ j.user.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="m-project">Project</label><select id="m-project" name="project">{% for p in projects %}<option value="{{ p.public_id }}">{{ p.title }}</option>{% endfor %}</select></div>
+      <button class="btn secondary" type="submit">Assign</button>
+    </form>
+  </aside>
+</div>
+{% endblock %}

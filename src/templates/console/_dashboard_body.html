@@ -1,0 +1,52 @@
+<section class="card stats">
+  <div class="stat"><span class="value">{{ p.pct }}%</span><span class="label">Reviews complete</span></div>
+  <div class="stat"><span class="value">{{ p.done }}<span class="muted small">/{{ p.total }}</span></span><span class="label">Reviews done</span></div>
+  <div class="stat"><span class="value">{{ p.under_covered|length }}</span><span class="label">Projects under {{ event.reviews_per_project }} reviews</span></div>
+  <div class="stat"><span class="value">{{ p.recused }}</span><span class="label">Recusals</span></div>
+</section>
+<progress max="100" value="{{ p.pct }}" style="margin:14px 0 4px" aria-label="Overall progress">{{ p.pct }}%</progress>
+
+<div class="grid two" style="margin-top:16px">
+  <section class="card">
+    <h2>By track</h2>
+    <div class="table-wrap"><table>
+      <tbody>
+      {% for t in p.per_track %}
+        <tr><td>{{ t.track.name }}</td><td style="width:45%"><progress max="100" value="{{ t.pct }}" aria-label="{{ t.track.name }} progress"></progress></td><td class="num mono">{{ t.done }}/{{ t.total }}</td></tr>
+      {% empty %}<tr><td class="muted">No tracks.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>Needs attention</h2><a class="small" href="{% url 'manage:assignments' event.slug %}">Assign reviewers</a></div>
+    {% if p.components > 1 %}
+      <div class="notice">The judges form {{ p.components }} groups that never review the same projects, so their relative generosity cannot be compared across groups. Assigning a few cross-track reviews joins them up.</div>
+    {% endif %}
+    {% for proj in p.under_covered|slice:":10" %}
+      <div class="small" style="padding:4px 0"><a href="{{ proj.get_absolute_url }}">{{ proj.title }}</a> <span class="chip warn">{{ proj.n }} of {{ event.reviews_per_project }} reviews</span> <span class="muted">{{ proj.track.name }}</span></div>
+    {% empty %}<p class="small muted">Every project has its target number of completed reviews.</p>{% endfor %}
+    {% if p.under_covered|length > 10 %}<p class="small muted">and {{ p.under_covered|length|add:"-10" }} more.</p>{% endif %}
+  </section>
+</div>
+
+<section class="card" style="margin-top:16px">
+  <div class="card-head"><h2>Judges</h2>
+    {% if p.diagnostics %}<span class="small muted">judge spread σ<sub>b</sub> = {{ p.diagnostics.judge_sd|floatformat:2 }}, noise σ = {{ p.diagnostics.residual_sd|floatformat:2 }}, prior λ = {{ p.diagnostics.lambda|floatformat:1 }}</span>{% endif %}
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Judge</th><th>Progress</th><th class="num">Mean</th><th class="num">Spread</th><th class="num">Bias</th><th>Flags</th></tr></thead>
+    <tbody>
+    {% for j in p.judges %}
+      <tr>
+        <td>{{ j.role.user.name }}<div class="mono small muted">{{ j.role.public_id }}</div></td>
+        <td style="min-width:140px"><progress max="{{ j.total|default:1 }}" value="{{ j.done }}" aria-label="progress"></progress><div class="small muted">{{ j.done }}/{{ j.total }}</div></td>
+        <td class="num mono">{% if j.profile %}{{ j.profile.mean|floatformat:2 }}{% else %}–{% endif %}</td>
+        <td class="num mono">{% if j.profile %}{{ j.profile.sd|floatformat:2 }}{% else %}–{% endif %}</td>
+        <td class="num mono">{% if j.bias is not None %}{{ j.bias|floatformat:2 }}{% else %}–{% endif %}</td>
+        <td>{% for key, why in j.flags %}<span class="chip {% if key == 'flat' or key == 'harsh' or key == 'lenient' %}bad{% elif key == 'pending' %}warn{% endif %}" title="{{ why }}">{{ key }}</span> {% endfor %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="small muted">Mean and spread are of each judge's weighted totals. Bias is the judge-effect model's estimate of how far above (+) or below (−) an average judge this judge scores, after accounting for which projects they saw. See JUDGING.md.</p>
+</section>
