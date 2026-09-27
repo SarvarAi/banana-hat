@@ -1,0 +1,61 @@
+# docker compose up
+#
+# Brings up a seeded, working portal on http://localhost:8080 with nothing outside this
+# file: no cloud accounts, no hosted services. Mail is caught by Mailpit and readable at
+# http://localhost:8025. After the first `docker compose up` has pulled and built the
+# images, everything runs with the network off.
+#
+# This file is the demo. For a real event, copy it and change the lines marked PROD.
+
+name: bananahat
+
+x-app-env: &app-env
+  DATABASE_URL: postgres://bananahat:bananahat@db:5432/bananahat   # PROD: real password
+  SITE_URL: http://localhost:${BANANAHAT_PORT:-8080}                  # PROD: your public URL
+  ALLOWED_HOSTS: localhost,127.0.0.1,[::1],web
+  EMAIL_HOST: mailpit
+  EMAIL_PORT: "1025"
+  DEFAULT_FROM_EMAIL: Banana Hat <noreply@bananahat.localhost>
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: bananahat
+      POSTGRES_USER: bananahat
+      POSTGRES_PASSWORD: bananahat
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bananahat -d bananahat"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "8025:8025"
+    restart: unless-stopped
+
+  web:
+    build: .
+    image: bananahat:latest
+    command: ["web"]
+    environment: *app-env
+    ports:
+      - "${BANANAHAT_PORT:-8080}:8000"                                # port taken? BANANAHAT_PORT=8090
+    volumes:
+      - app-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    restart: unless-stopped
+
+
+volumes:
+  db-data:
+  app-data:

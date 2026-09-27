@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Not found · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow">404 · not found</div>
+  <h1>Nothing lives at this address</h1>
+  <p class="lede">The link may be old, or the event may not be public yet.</p>
+  <a class="btn secondary" href="{% url 'events:gallery' %}">Browse the gallery</a>
+</section>
+{% endblock %}

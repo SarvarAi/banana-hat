@@ -1,0 +1,20 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
+  <link rel="icon" href="{% static 'img/hat.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="/">{% include "partials/hat.svg" %}<span>{{ SITE_NAME }}</span></a>
+    </div>
+  </header>
+  <main id="main"><div class="wrap">{% block content %}{% endblock %}</div></main>
+  <footer class="footer"><div class="wrap"><span>{{ SITE_NAME }} &middot; self-hosted hackathon judging &middot; Apache-2.0</span></div></footer>
+  <script src="{% static 'js/app.js' %}" defer></script>
+</body>
+</html>

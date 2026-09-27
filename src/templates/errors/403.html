@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Not allowed · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow">403 · refused</div>
+  <h1>You can't open this page</h1>
+  <p class="lede">{{ message|default:"Your account doesn't have a role that allows this. If you think it should, ask the event's organizers." }}</p>
+  <div class="actions">
+    {% if not user.is_authenticated %}<a class="btn" href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}">Sign in</a>{% endif %}
+    <a class="btn secondary" href="{% url 'home' %}">Go to the start page</a>
+  </div>
+</section>
+{% endblock %}

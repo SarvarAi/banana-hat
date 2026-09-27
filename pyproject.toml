@@ -1,0 +1,45 @@
+[project]
+name = "bananahat"
+version = "0.1.0"
+description = "A self-hostable hackathon submission and judging platform."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "bananahat.settings"
+pythonpath = ["src", "."]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+filterwarnings = [
+    "ignore::DeprecationWarning:drf_spectacular.*",
+    "ignore:No directory at:UserWarning",
+    "ignore:The FORMS_URLFIELD_ASSUME_HTTPS transitional setting",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["run.py", "src/*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ", "S", "SIM"]
+ignore = [
+    "S101",  # assert is how pytest works
+    "S311",  # random is used for tie-breaking and simulation, never for secrets
+    "DJ001", # nullable CharFields are deliberate where "unknown" differs from ""
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "S106"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+extraPaths = ["src"]
+typeCheckingMode = "basic"
+reportMissingModuleSource = false
+reportMissingImports = false
+reportOptionalMemberAccess = false
+reportAttributeAccessIssue = false
+reportIncompatibleVariableOverride = false
