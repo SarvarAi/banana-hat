@@ -1,0 +1,18 @@
+Banana Hat extended acceptance report (T3, T4)
+portal: http://localhost:8090
+the official run.py has no T3/T4 checks; these are ours, same style
+
+T3  ballot order is random per voter, stable per ballot .. PASS
+T3  vote totals hidden while voting is open .............. PASS
+T3  participant can comment, visitor cannot .............. PASS
+T3  duplicate submission flagged and kept out ............ PASS
+T3  audit trail readable and intact ...................... PASS
+T3  rate limiting refuses floods ......................... PASS
+T4  REST API with an OpenAPI document .................... PASS
+T4  webhooks: create, test delivery, delete .............. PASS
+T4  signed judge record verifies offline ................. PASS
+T4  certificate page for a signed record ................. PASS
+T4  embeddable gallery widget ............................ PASS
+T4  bulk export and re-import round trip ................. PASS
+
+verified T3 T4 (of T3 T4)
