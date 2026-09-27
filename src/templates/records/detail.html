@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Record {{ record.public_id }} · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow">Signed record · <span class="id">{{ record.public_id }}</span></div>
+  <div class="docket-row">
+    <div>
+      <h1>{{ record.get_kind_display }}</h1>
+      <p class="lede">{{ record.payload.statement|default:record.event.name }}</p>
+    </div>
+    {% if record.revoked_at %}<span class="stamp big red">Revoked</span>{% elif valid %}<span class="stamp big green">Verified</span>{% else %}<span class="stamp big red">Invalid</span>{% endif %}
+  </div>
+  <dl class="meta">
+    <div><dt>Event</dt><dd>{{ record.event.name }}</dd></div>
+    <div><dt>Issued</dt><dd>{{ record.issued_at|date:"Y-m-d H:i" }} UTC</dd></div>
+    <div><dt>Key</dt><dd>{{ record.key.key_id }}</dd></div>
+    <div><dt>Algorithm</dt><dd>Ed25519</dd></div>
+  </dl>
+</section>
+<div class="layout">
+  <section class="card">
+    <div class="card-head"><h2>The record</h2><a class="small" href="{% url 'api:record' record.public_id %}">JSON</a></div>
+    <pre class="block">{{ document }}</pre>
+  </section>
+  <aside class="stack">
+    <section class="card">
+      <h3>Check it yourself</h3>
+      <p class="small">You do not have to trust this page. Save the JSON, fetch the public key once from <a href="{% url 'records:keys' %}">/.well-known/bananahat-keys.json</a>, and run the standard-library verifier from the repository:</p>
+      <pre class="block">python3 tools/verify_record.py record.json</pre>
+      <p class="small muted">The signature covers the canonical JSON of <code>payload</code>: keys sorted, no whitespace, UTF-8.</p>
+    </section>
+    {% if record.kind != "results" %}<a class="btn secondary" href="{% url 'records:certificate' record.public_id %}">Printable version</a>{% endif %}
+  </aside>
+</div>
+{% endblock %}

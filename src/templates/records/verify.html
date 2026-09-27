@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Verify a record · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow">Signed records</div>
+  <h1>Verify a record</h1>
+  <p class="lede">Paste a record (the JSON with <code>payload</code> and <code>signature</code>) to check it against this portal's signing keys.</p>
+</section>
+{% if outcome %}
+  <div class="notice {% if outcome.0 %}good{% else %}bad{% endif %}">{% if outcome.0 %}<span class="stamp green">valid</span> Signed by this portal and unchanged since.{% else %}<span class="stamp red">invalid</span> {{ outcome.1 }}.{% endif %}</div>
+{% endif %}
+<form method="post" class="card" style="margin-top:14px">{% csrf_token %}
+  <div class="field"><label for="document">Record JSON</label><textarea id="document" name="document" rows="12" class="mono">{{ text }}</textarea></div>
+  <button class="btn" type="submit">Verify</button>
+</form>
+{% endblock %}

@@ -114,6 +114,7 @@ INSTALLED_APPS = [
     "events",
     "judging",
     "voting",
+    "records",
 ]
 
 MIDDLEWARE = [

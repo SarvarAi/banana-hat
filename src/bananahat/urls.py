@@ -18,4 +18,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("events.urls")),
     path("", include("voting.urls")),
+    path("", include("records.urls")),
 ]

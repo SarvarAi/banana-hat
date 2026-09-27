@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Certificate · {{ record.event.name }}{% endblock %}
+{% block content %}
+<div class="certificate">
+  <div class="certificate-inner">
+    <div class="eyebrow" style="justify-content:center">{{ record.event.name }}</div>
+    {% if record.kind == "judge_participation" %}
+      <h1>Certificate of judging</h1>
+      <p class="certificate-name">{{ p.judge.name }}</p>
+      <p>served on the judging panel and reviewed <strong>{{ p.reviews }}</strong> project{{ p.reviews|pluralize }}{% if p.tracks %} in {{ p.tracks|join:", " }}{% endif %}.</p>
+    {% else %}
+      <h1>Certificate of participation</h1>
+      <p class="certificate-name">{{ p.recipient.name }}</p>
+      <p>took part with team <strong>{{ p.team }}</strong>{% if p.project %}, building <strong>{{ p.project.title }}</strong>{% endif %}{% if p.rank %}, ranked {{ p.rank }} of {{ p.ranked_projects }}{% endif %}.</p>
+      {% if p.awards %}<p><span class="stamp big green">{{ p.awards|join:" · " }}</span></p>{% endif %}
+    {% endif %}
+    <div class="certificate-foot">
+      <div><span class="label">Issued</span><div class="mono">{{ record.issued_at|date:"j F Y" }}</div></div>
+      <div><span class="label">Verify at</span><div class="mono small">{{ verify_url }}</div></div>
+      <div><span class="label">Signature</span><div class="mono small">{% if valid %}Ed25519 · {{ record.key.key_id }}{% else %}INVALID{% endif %}</div></div>
+    </div>
+  </div>
+</div>
+<div class="actions no-print" style="justify-content:center;margin-top:16px">
+  <a class="btn secondary" href="{% url 'records:detail' record.public_id %}">See the signed record</a>
+  <span class="small muted">Print this page, or save it as PDF from your browser.</span>
+</div>
+{% endblock %}
