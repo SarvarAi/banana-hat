@@ -16,6 +16,9 @@ x-app-env: &app-env
   EMAIL_HOST: mailpit
   EMAIL_PORT: "1025"
   DEFAULT_FROM_EMAIL: Banana Hat <noreply@bananahat.localhost>
+  # Demo mode: loads fixtures.json, prints test credentials, shows the account switcher.
+  DEMO_MODE: "true"                                                   # PROD: false
+  SEED_FIXTURES: "true"                                               # PROD: false
 
 services:
   db:

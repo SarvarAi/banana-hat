@@ -112,6 +112,7 @@ INSTALLED_APPS = [
     "accounts",
     "audit",
     "events",
+    "judging",
 ]
 
 MIDDLEWARE = [
