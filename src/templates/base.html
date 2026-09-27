@@ -21,6 +21,7 @@
         {% if user.is_authenticated %}
         <a href="{% url 'events:mine' %}" {% if nav == 'mine' %}aria-current="page"{% endif %}>My events</a>
         {% endif %}
+        <a href="{% url 'api-docs' %}" {% if nav == 'api' %}aria-current="page"{% endif %}>API</a>
       </nav>
       <div class="nav-user">
         {% if user.is_authenticated %}
@@ -47,7 +48,7 @@
   <footer class="footer">
     <div class="wrap">
       <span>{{ SITE_NAME }} &middot; self-hosted hackathon judging &middot; Apache-2.0</span>
-      <span><a href="{% url 'records:keys' %}">Signing keys</a> &middot; <a href="{% url 'healthz' %}">Health</a></span>
+      <span><a href="{% url 'api-docs' %}">API</a> &middot; <a href="{% url 'records:keys' %}">Signing keys</a> &middot; <a href="{% url 'healthz' %}">Health</a></span>
     </div>
   </footer>
   <script src="{% static 'js/app.js' %}" defer></script>

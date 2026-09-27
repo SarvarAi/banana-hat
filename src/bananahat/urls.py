@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import include, path
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerSplitView
 
 from core import views as core_views
 from events import views as event_views
@@ -16,6 +17,9 @@ urlpatterns = [
     path("healthz", core_views.healthz, name="healthz"),
     path("accounts/", include("accounts.urls")),
     path("manage/", include("console.urls")),
+    path("api/v1/", include("api.urls")),
+    path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),
+    path("api/docs/", SpectacularSwaggerSplitView.as_view(url_name="api-schema"), name="api-docs"),
     path("admin/", admin.site.urls),
     path("", include("events.urls")),
     path("", include("judging.urls")),
