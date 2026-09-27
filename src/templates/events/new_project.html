@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Submit a project · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow">Submit</div>
+  <h1>Which event are you submitting to?</h1>
+</section>
+{% if events %}
+<div class="grid three">
+  {% for e in events %}
+  <div class="card">
+    <h3>{{ e.name }}</h3>
+    <p class="small muted">Deadline <span class="mono">{{ e.submissions_close_at|date:"Y-m-d H:i" }} UTC</span></p>
+    <a class="btn" href="{% url 'events:submission' e.slug %}">Submit to {{ e.name }}</a>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">No event is taking submissions right now. <a href="{% url 'events:list' %}">See all events.</a></div>
+{% endif %}
+{% endblock %}

@@ -110,6 +110,8 @@ INSTALLED_APPS = [
     "drf_spectacular_sidecar",
     "core",
     "accounts",
+    "audit",
+    "events",
 ]
 
 MIDDLEWARE = [

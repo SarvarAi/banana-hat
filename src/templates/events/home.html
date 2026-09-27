@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="eyebrow">Self-hosted hackathon judging</div>
+  <h1>Submissions, judging and results, <span class="hl">on the record</span>.</h1>
+  <p class="lede">Teams submit until the deadline and not a minute after. Judges score on a weighted rubric and never see each other's numbers. Harsh and generous judges are evened out by a method we publish. Every decision lands in an audit trail the organizers can read.</p>
+  <div class="actions">
+    <a class="btn" href="{% url 'events:gallery' %}">Browse projects</a>
+    <a class="btn secondary" href="{% url 'events:list' %}">See events</a>
+  </div>
+</section>
+
+<section>
+  <div class="card-head"><h2>Events</h2><a href="{% url 'events:list' %}">All events</a></div>
+  {% if events %}
+  <div class="grid three">
+    {% for e in events %}
+    <a class="card" href="{{ e.get_absolute_url }}" style="text-decoration:none;color:inherit">
+      <div class="card-head"><span class="eyebrow" style="margin:0">{{ e.submissions_close_at|date:"j M Y" }}</span><span class="stamp {{ e.phase }}">{{ e.phase }}</span></div>
+      <h3>{{ e.name }}</h3>
+      <p class="muted small">{{ e.tagline|default:"" }}</p>
+      <span class="small">{{ e.project_count }} project{{ e.project_count|pluralize }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">No public events yet. {% if user.may_create_events %}<a href="{% url 'manage:create' %}">Create the first one.</a>{% endif %}</div>
+  {% endif %}
+</section>
+
+{% if recent %}
+<section style="margin-top:40px">
+  <div class="card-head"><h2>Recently submitted</h2><a href="{% url 'events:gallery' %}?sort=newest">Everything</a></div>
+  <div class="cards">{% for p in recent %}{% include "events/_project_card.html" with show_event=True %}{% endfor %}</div>
+</section>
+{% endif %}
+{% endblock %}

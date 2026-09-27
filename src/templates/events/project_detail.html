@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ project.title }} · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow"><a href="{{ event.get_absolute_url }}">{{ event.name }}</a> · {{ project.track.name|default:"No track" }} · <span class="id">{{ project.public_id }}</span></div>
+  <div class="docket-row">
+    <div>
+      <h1>{{ project.title }}</h1>
+      <p class="lede">{{ project.summary }}</p>
+    </div>
+    <span class="stamp big {% if project.is_duplicate %}duplicate{% else %}{{ project.status }}{% endif %}">{% if project.is_duplicate %}Duplicate{% else %}{{ project.get_status_display }}{% endif %}</span>
+  </div>
+  <dl class="meta">
+    <div><dt>Team</dt><dd>{{ project.team.name }}</dd></div>
+    {% if project.submitted_at %}<div><dt>Submitted</dt><dd>{{ project.submitted_at|date:"Y-m-d H:i" }} UTC</dd></div>{% endif %}
+    {% if project.repo_url %}<div><dt>Code</dt><dd><a href="{{ project.repo_url }}" rel="nofollow noopener">{{ project.repo_url|cut:"https://"|truncatechars:40 }}</a></dd></div>{% endif %}
+    {% if project.demo_url %}<div><dt>Demo</dt><dd><a href="{{ project.demo_url }}" rel="nofollow noopener">open</a></dd></div>{% endif %}
+    {% if project.video_url %}<div><dt>Video</dt><dd><a href="{{ project.video_url }}" rel="nofollow noopener">watch</a></dd></div>{% endif %}
+  </dl>
+</section>
+
+{% if project.is_duplicate %}
+<div class="notice bad">This is a second copy of <a href="{{ project.duplicate_of.get_absolute_url }}">{{ project.duplicate_of.title }}</a> ({{ project.duplicate_of.public_id }}) from the same team. It is kept for the record and does not compete.</div>
+{% endif %}
+
+<div class="layout" style="margin-top:16px">
+  <div class="stack">
+    <section class="card">
+      <h2>About the project</h2>
+      {% if project.description %}<p>{{ project.description|linebreaksbr }}</p>{% else %}<p class="muted">The team has not written a longer description.</p>{% endif %}
+      {% if on_team %}<a class="btn secondary small" href="{% url 'events:submission' event.slug %}">Edit your submission</a>{% endif %}
+    </section>
+
+    <section class="card" id="comments">
+      <div class="card-head"><h2>Comments</h2><span class="small muted">{{ comments|length }}</span></div>
+      {% for c in comments %}
+        <div class="comment">
+          <div class="small"><strong>{{ c.author.display_name }}</strong> <span class="muted">· {{ c.created_at|timesince }} ago</span>
+            {% if c.hidden_at %}<span class="chip bad">hidden: {{ c.hidden_reason }}</span>{% endif %}</div>
+          <div>{{ c.body|linebreaksbr }}</div>
+          {% if is_organizer %}
+          <form method="post" action="{% url 'voting:moderate-comment' c.public_id %}" class="actions" style="margin-top:6px">{% csrf_token %}
+            {% if c.hidden_at %}<button class="linkish small" name="action" value="restore">Restore</button>
+            {% else %}<input type="text" name="reason" placeholder="Reason for hiding" required style="max-width:240px"><button class="btn danger small" name="action" value="hide">Hide</button>{% endif %}
+          </form>
+          {% endif %}
+        </div>
+      {% empty %}<p class="muted">No comments yet.</p>{% endfor %}
+      {% if can_comment %}
+      <form method="post" action="{% url 'voting:comment' project.public_id %}" style="margin-top:14px">{% csrf_token %}
+        <div class="field"><label for="comment-body">Add a comment</label><textarea id="comment-body" name="body" maxlength="2000" required></textarea></div>
+        <button class="btn secondary" type="submit">Post comment</button>
+      </form>
+      {% elif not user.is_authenticated %}
+      <p class="small"><a href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}">Sign in</a> to comment.</p>
+      {% endif %}
+    </section>
+  </div>
+  <aside class="card">
+    <h3>Team {{ project.team.name }}</h3>
+    <ul class="plain-list">{% for m in members %}<li>{{ m.user.display_name }}{% if m.is_captain %} <span class="chip">captain</span>{% endif %}</li>{% endfor %}</ul>
+  </aside>
+</div>
+{% endblock %}

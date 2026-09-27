@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Submission · {{ event.name }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow"><a href="{{ event.get_absolute_url }}">{{ event.name }}</a> · {{ team.name }} · Submission</div>
+  <div class="docket-row">
+    <div>
+      <h1>{% if project %}{{ project.title }}{% else %}Your project{% endif %}</h1>
+      <p class="lede">
+        {% if editable %}Edit freely until <strong class="mono">{{ deadline|date:"Y-m-d H:i" }} UTC</strong>{% if extended %} (your team's extension){% endif %}.
+          <span class="countdown" data-deadline="{{ deadline|date:'c' }}"></span>
+        {% else %}The deadline passed at <span class="mono">{{ deadline|date:"Y-m-d H:i" }} UTC</span>. This submission is final.{% endif %}
+      </p>
+    </div>
+    {% if project %}<span class="stamp big {{ project.status }}">{{ project.get_status_display }}</span>{% elif not editable %}<span class="stamp big closed">Closed</span>{% endif %}
+  </div>
+</section>
+
+<div class="layout">
+  <form method="post" class="card" novalidate>
+    {% csrf_token %}
+    {% include "partials/form_errors.html" %}
+    <fieldset {% if not editable %}disabled{% endif %} class="bare">
+      {% for field in form %}{% include "partials/field.html" %}{% endfor %}
+    </fieldset>
+    {% if editable %}
+    <div class="form-actions">
+      <button class="btn secondary" type="submit" name="save">Save draft</button>
+      {% if not project or project.status != "submitted" %}<button class="btn" type="submit" name="submit">Save and submit</button>{% else %}<button class="btn" type="submit" name="save">Save changes</button>{% endif %}
+    </div>
+    {% endif %}
+  </form>
+  <aside class="stack">
+    <section class="card">
+      <h3>How this works</h3>
+      <ul class="plain-list small">
+        <li><strong>Draft</strong> is visible only to your team and the organizers.</li>
+        <li><strong>Submitted</strong> appears in the public gallery and goes to the judges.</li>
+        <li>You can edit a submitted project until the deadline. After it, the server refuses every change, from every page and the API alike.</li>
+      </ul>
+    </section>
+    {% if project and editable %}
+    <section class="card">
+      <h3>Other actions</h3>
+      <div class="actions">
+        {% if project.status == "submitted" %}
+        <form method="post" action="{% url 'events:submission-action' event.slug 'unsubmit' %}" class="inline-form">{% csrf_token %}<button class="btn secondary small" type="submit">Back to draft</button></form>
+        {% endif %}
+        <form method="post" action="{% url 'events:submission-action' event.slug 'withdraw' %}" class="inline-form">{% csrf_token %}<button class="btn danger small" type="submit">Withdraw project</button></form>
+      </div>
+    </section>
+    {% endif %}
+    {% if project %}<a class="btn secondary" href="{{ project.get_absolute_url }}">View public page</a>{% endif %}
+  </aside>
+</div>
+{% endblock %}

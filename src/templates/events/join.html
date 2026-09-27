@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Join {{ team.name }} · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow"><a href="{{ event.get_absolute_url }}">{{ event.name }}</a> · Invitation</div>
+  <h1>Join {{ team.name }}</h1>
+  <p class="lede">{{ members|length }} of {{ event.max_team_size }} seats taken: {% for m in members %}{{ m.user.display_name }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+</section>
+<div class="card narrow">
+  {% if full %}
+    <p>This team is full.</p>
+  {% elif not event.submissions_open %}
+    <p>Submissions for {{ event.name }} are closed, so teams are locked.</p>
+  {% elif user.is_authenticated %}
+    <form method="post">{% csrf_token %}<button class="btn" type="submit">Join {{ team.name }}</button></form>
+  {% else %}
+    <p>Sign in or create an account to join.</p>
+    <div class="actions">
+      <a class="btn" href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Sign in</a>
+      <a class="btn secondary" href="{% url 'accounts:signup' %}?next={{ request.path|urlencode }}">Create account</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

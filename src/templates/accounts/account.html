@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Your account · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow">Account · <span class="mono">{{ user.email }}</span></div>
+  <h1>{{ user.display_name }}</h1>
+</section>
+<div class="layout">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h2>API tokens</h2><a class="small" href="{% url 'api-docs' %}">API reference</a></div>
+      {% if new_token %}
+      <div class="notice good" role="status">
+        <strong>Copy this token now.</strong> It is shown once and only its fingerprint is stored.
+        <pre class="block">{{ new_token }}</pre>
+        <span class="small">Use it as <code>Authorization: Bearer {{ new_token|truncatechars:14 }}</code></span>
+      </div>
+      {% endif %}
+      {% if tokens %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Prefix</th><th>Last used</th><th>Expires</th><th></th></tr></thead>
+        <tbody>
+        {% for t in tokens %}
+          <tr>
+            <td>{{ t.name }}</td>
+            <td class="mono">{{ t.prefix }}…</td>
+            <td class="small">{{ t.last_used_at|default:"never" }}</td>
+            <td class="small">{% if t.revoked_at %}<span class="chip bad">revoked</span>{% else %}{{ t.expires_at|default:"never" }}{% endif %}</td>
+            <td>{% if not t.revoked_at %}<form class="inline-form" method="post" action="{% url 'accounts:revoke-token' t.pk %}">{% csrf_token %}<button class="btn danger small" type="submit">Revoke</button></form>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}<p class="muted">No tokens yet.</p>{% endif %}
+      <form method="post" action="{% url 'accounts:create-token' %}" class="form-row">
+        {% csrf_token %}
+        {% with field=token_form.name %}{% include "partials/field.html" %}{% endwith %}
+        {% with field=token_form.expires_in_days %}{% include "partials/field.html" %}{% endwith %}
+        <div class="form-actions"><button class="btn secondary" type="submit">Create token</button></div>
+      </form>
+    </section>
+    <section class="card">
+      <h2>Your roles</h2>
+      {% if roles %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Event</th><th>Role</th><th>ID</th></tr></thead>
+        <tbody>{% for r in roles %}<tr><td><a href="{{ r.event.get_absolute_url }}">{{ r.event.name }}</a></td><td>{{ r.get_role_display }}</td><td class="mono">{{ r.public_id }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      {% else %}<p class="muted">No roles yet. Join a team from an event page, or accept a judge invitation.</p>{% endif %}
+    </section>
+  </div>
+  <aside class="card">
+    <h3>Profile</h3>
+    <form method="post">{% csrf_token %}
+      {% with field=profile_form.name %}{% include "partials/field.html" %}{% endwith %}
+      <button class="btn secondary" type="submit">Save profile</button>
+    </form>
+  </aside>
+</div>
+{% endblock %}

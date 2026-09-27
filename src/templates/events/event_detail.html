@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}{{ event.name }} · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow"><span class="id">{{ event.public_id }}</span>{% if not event.is_listed %}<span class="chip">draft, not public</span>{% endif %}</div>
+  <div class="docket-row">
+    <div>
+      <h1>{{ event.name }}</h1>
+      {% if event.tagline %}<p class="lede">{{ event.tagline }}</p>{% endif %}
+    </div>
+    <span class="stamp big {{ event.phase }}">{{ event.phase }}</span>
+  </div>
+  <dl class="meta">
+    <div><dt>Deadline</dt><dd>{{ event.submissions_close_at|date:"Y-m-d H:i" }} UTC</dd></div>
+    <div><dt>Team size</dt><dd>up to {{ event.max_team_size }}</dd></div>
+    <div><dt>Scoring</dt><dd>{{ event.score_min }}–{{ event.score_max }}, weighted</dd></div>
+    {% if event.voting_enabled %}<div><dt>Community vote</dt><dd>{{ event.get_voting_mode_display }}</dd></div>{% endif %}
+  </dl>
+</section>
+
+<div class="layout">
+  <div class="stack">
+    {% if results %}
+      {% include "judging/_published_results.html" %}
+    {% endif %}
+
+    {% if event.description %}<section class="card"><h2>About</h2><p>{{ event.description|linebreaksbr }}</p></section>{% endif %}
+
+    <section class="card">
+      <div class="card-head"><h2>Tracks</h2><a href="{% url 'events:event-gallery' event.slug %}">All {{ stats.projects }} projects</a></div>
+      {% if tracks %}
+      <div class="table-wrap"><table>
+        <tbody>{% for t in tracks %}<tr><td><a href="{% url 'events:event-gallery' event.slug %}?track={{ t.public_id }}">{{ t.name }}</a>{% if t.description %}<div class="small muted">{{ t.description }}</div>{% endif %}</td><td class="num">{{ t.n }} project{{ t.n|pluralize }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      {% else %}<p class="muted">This event has a single open track.</p>{% endif %}
+    </section>
+
+    {% if prizes %}
+    <section class="card">
+      <h2>Prizes</h2>
+      <div class="table-wrap"><table>
+        <tbody>{% for pz in prizes %}<tr>
+          <td><strong>{{ pz.name }}</strong>{% if pz.description %}<div class="small muted">{{ pz.description }}</div>{% endif %}</td>
+          <td class="small">{{ pz.track.name|default:"Overall" }}</td>
+          <td class="mono nowrap">{{ pz.value }}</td>
+          <td>{% if pz.winner and event.results_public %}<a href="{{ pz.winner.get_absolute_url }}">{{ pz.winner.title }}</a>{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+    </section>
+    {% endif %}
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      {% if is_organizer %}
+        <h3>You organize this event</h3>
+        <div class="actions"><a class="btn" href="{% url 'manage:overview' event.slug %}">Open the console</a></div>
+      {% elif is_judge %}
+        <h3>You are judging</h3>
+        <div class="actions"><a class="btn" href="{% url 'judging:event' event.slug %}">Your review queue</a></div>
+      {% elif team %}
+        <h3>{{ team.name }}</h3>
+        {% if project %}
+          <p class="small">Project: <a href="{{ project.get_absolute_url }}">{{ project.title }}</a> <span class="stamp {{ project.status }}">{{ project.get_status_display }}</span></p>
+        {% else %}<p class="small muted">No project yet.</p>{% endif %}
+        <div class="actions">
+          <a class="btn" href="{% url 'events:submission' event.slug %}">{% if project %}Edit submission{% else %}Start your project{% endif %}</a>
+          <a class="btn secondary" href="{% url 'events:team' event.slug %}">Team</a>
+        </div>
+        {% if deadline != event.submissions_close_at %}<p class="small">Your team has an extension until <span class="mono">{{ deadline|date:"Y-m-d H:i" }} UTC</span>.</p>{% endif %}
+      {% elif event.submissions_open %}
+        <h3>Taking part?</h3>
+        <p class="small">Create a team, invite your teammates with a link, and submit before the deadline.</p>
+        <a class="btn" href="{% url 'events:team' event.slug %}">Create or join a team</a>
+      {% else %}
+        <h3>Submissions {% if event.phase == "upcoming" %}open {{ event.submissions_open_at|date:"j M, H:i" }} UTC{% else %}are closed{% endif %}</h3>
+        <a class="btn secondary" href="{% url 'events:event-gallery' event.slug %}">Browse the projects</a>
+      {% endif %}
+      {% if event.voting_open %}
+        <hr class="divider">
+        <h3>Community vote is open</h3>
+        <a class="btn marker" href="{% url 'voting:ballot' event.slug %}">Vote for your favourites</a>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h3>Timeline</h3>
+      <ol class="timeline">
+        {% for step in timeline %}<li class="{{ step.state }}"><div><div>{{ step.label }}</div><div class="when">{{ step.at|date:"Y-m-d H:i" }} UTC</div></div></li>{% endfor %}
+      </ol>
+    </section>
+
+    <section class="card stats">
+      <div class="stat"><span class="value">{{ stats.projects }}</span><span class="label">Projects</span></div>
+      <div class="stat"><span class="value">{{ stats.teams }}</span><span class="label">Teams</span></div>
+      <div class="stat"><span class="value">{{ stats.judges }}</span><span class="label">Judges</span></div>
+    </section>
+  </aside>
+</div>
+{% endblock %}

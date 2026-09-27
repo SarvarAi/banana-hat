@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Team · {{ event.name }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="eyebrow"><a href="{{ event.get_absolute_url }}">{{ event.name }}</a> · Team</div>
+  <h1>{% if team %}{{ team.name }}{% else %}Form a team{% endif %}</h1>
+  {% if not team %}<p class="lede">Create a team, then send the invite link to your teammates. Up to {{ event.max_team_size }} people per team. Going solo? Create a team of one.</p>{% endif %}
+</section>
+{% if team %}
+<div class="layout">
+  <section class="card">
+    <h2>Members</h2>
+    <div class="table-wrap"><table><tbody>
+      {% for m in members %}<tr><td>{{ m.user.display_name }}</td><td class="small muted">{{ m.user.email }}</td><td>{% if m.is_captain %}<span class="chip">captain</span>{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div>
+    <p class="small muted">{{ members|length }} of {{ event.max_team_size }} seats taken.</p>
+    <div class="actions">
+      <a class="btn" href="{% url 'events:submission' event.slug %}">Go to your submission</a>
+      {% if can_edit %}<form method="post" action="{% url 'events:team-leave' event.slug %}" class="inline-form">{% csrf_token %}<button class="btn danger" type="submit">Leave team</button></form>{% endif %}
+    </div>
+  </section>
+  <aside class="card">
+    <h3>Invite link</h3>
+    {% if can_edit %}
+      <p class="small">Anyone with this link can join until the team is full or the deadline passes.</p>
+      <input type="text" readonly value="{{ invite_url }}" class="mono select-on-focus" aria-label="Invite link">
+      {% if is_captain %}
+      <form method="post" action="{% url 'events:team-rotate' event.slug %}" style="margin-top:10px">{% csrf_token %}<button class="btn secondary small" type="submit">Reset link</button></form>
+      <p class="small muted">Resetting makes the old link stop working.</p>
+      {% endif %}
+    {% else %}<p class="small muted">The deadline has passed; the team is locked.</p>{% endif %}
+  </aside>
+</div>
+{% else %}
+  {% if can_edit %}
+  <form method="post" class="card narrow">{% csrf_token %}
+    {% for field in form %}{% include "partials/field.html" %}{% endfor %}
+    <button class="btn" type="submit">Create team</button>
+    <p class="small muted" style="margin-top:12px">Got an invite link? Open it to join that team instead.</p>
+  </form>
+  {% else %}
+  <div class="notice bad">Submissions for {{ event.name }} are closed, so new teams cannot be formed.</div>
+  {% endif %}
+{% endif %}
+{% endblock %}

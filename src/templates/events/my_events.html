@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}My events · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="docket-row">
+    <div><div class="eyebrow">Your roles</div><h1>My events</h1></div>
+    {% if creatable %}<a class="btn" href="{% url 'manage:create' %}">Create an event</a>{% endif %}
+  </div>
+</section>
+<div class="grid three">
+  <section class="card">
+    <h2>Organizing</h2>
+    {% for e in grouped.organizer %}<p><a href="{% url 'manage:overview' e.slug %}"><strong>{{ e.name }}</strong></a> <span class="stamp {{ e.phase }}">{{ e.phase }}</span></p>{% empty %}<p class="muted small">Nothing yet.</p>{% endfor %}
+  </section>
+  <section class="card">
+    <h2>Judging</h2>
+    {% for e in grouped.judge %}<p><a href="{% url 'judging:event' e.slug %}"><strong>{{ e.name }}</strong></a> <span class="stamp {{ e.phase }}">{{ e.phase }}</span></p>{% empty %}<p class="muted small">No judging roles yet.</p>{% endfor %}
+  </section>
+  <section class="card">
+    <h2>Competing</h2>
+    {% for e in grouped.participant %}<p><a href="{% url 'events:detail' e.slug %}"><strong>{{ e.name }}</strong></a> <span class="stamp {{ e.phase }}">{{ e.phase }}</span></p>{% empty %}<p class="muted small">Join a team from an <a href="{% url 'events:list' %}">event page</a>.</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}

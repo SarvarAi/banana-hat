@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Create account · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket"><div class="eyebrow">Account</div><h1>Create an account</h1>
+<p class="lede">One account for everything: join a team, judge, or organize. Roles are granted per event.</p></section>
+<form method="post" class="card" style="max-width: 520px" novalidate>
+  {% csrf_token %}
+  {% include "partials/form_errors.html" %}
+  {% for field in form %}{% include "partials/field.html" %}{% endfor %}
+  <div class="form-actions"><button class="btn" type="submit">Create account</button><a href="{% url 'accounts:login' %}">I already have one</a></div>
+</form>
+{% endblock %}

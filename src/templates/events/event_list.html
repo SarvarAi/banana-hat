@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Events · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket">
+  <div class="docket-row">
+    <div><div class="eyebrow">Events</div><h1>Hackathons on this portal</h1></div>
+    {% if user.may_create_events %}<a class="btn" href="{% url 'manage:create' %}">Create an event</a>{% endif %}
+  </div>
+</section>
+{% if events %}
+<div class="card table-wrap">
+  <table>
+    <thead><tr><th>Event</th><th>Status</th><th>Deadline (UTC)</th><th class="num">Projects</th><th class="num">Tracks</th></tr></thead>
+    <tbody>
+    {% for e in events %}
+      <tr>
+        <td><a href="{{ e.get_absolute_url }}"><strong>{{ e.name }}</strong></a>{% if not e.is_listed %} <span class="chip">draft</span>{% endif %}<div class="small muted">{{ e.tagline }}</div></td>
+        <td><span class="stamp {{ e.phase }}">{{ e.phase }}</span></td>
+        <td class="mono nowrap">{{ e.submissions_close_at|date:"Y-m-d H:i" }}</td>
+        <td class="num">{{ e.project_count }}</td>
+        <td class="num">{{ e.track_count }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}<div class="empty">No events yet.</div>{% endif %}
+{% endblock %}

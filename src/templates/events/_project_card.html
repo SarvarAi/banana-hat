@@ -1,0 +1,8 @@
+<article class="project-card">
+  <div class="strip"><span class="id">{{ p.public_id }}</span><span>{{ p.track.name|default:"No track" }}</span></div>
+  <div class="body">
+    <h3><a href="{{ p.get_absolute_url }}">{{ p.title }}</a></h3>
+    <p>{{ p.summary|default:"No summary yet."|truncatechars:140 }}</p>
+  </div>
+  <div class="foot"><span>{{ p.team.name }}{% if show_event %} · {{ p.event.name }}{% endif %}</span>{% if p.status != "submitted" %}<span class="stamp {{ p.status }}">{{ p.get_status_display }}</span>{% endif %}</div>
+</article>

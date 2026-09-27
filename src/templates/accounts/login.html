@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Sign in · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="docket"><div class="eyebrow">Account</div><h1>Sign in</h1></section>
+<div class="grid two">
+  <form method="post" class="card" novalidate>
+    {% csrf_token %}
+    {% include "partials/form_errors.html" %}
+    {% for field in form %}{% include "partials/field.html" %}{% endfor %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="form-actions">
+      <button class="btn" type="submit">Sign in</button>
+      <a href="{% url 'accounts:signup' %}">Create an account</a>
+      <a class="small" href="{% url 'accounts:password-reset' %}">Forgot your password?</a>
+    </div>
+  </form>
+  {% if demo_accounts %}
+  <div class="card">
+    <div class="card-head"><h2>Demo accounts</h2><span class="stamp amber">demo only</span></div>
+    <p class="small muted">One click signs you in as a seeded role, so you can see what each role can and cannot do. This panel does not exist when DEMO_MODE is off.</p>
+    <form method="post" action="{% url 'accounts:demo-login' %}" class="demo-accounts">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {% for a in demo_accounts %}
+      <button type="submit" name="email" value="{{ a.email }}"><span class="role">{{ a.label }}</span>{{ a.name }}</button>
+      {% endfor %}
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
