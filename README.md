@@ -14,10 +14,13 @@ check them without trusting the server.
 Built for [DOGFOOD 2026](https://dogfoodhack.com). Apache-2.0.
 
 ```
+git clone https://github.com/SarvarAi/banana-hat.git
+cd banana-hat
 docker compose up
 ```
 
-Then open **http://localhost:8080**.
+Then open **http://localhost:8080**. The only requirement is Docker with Compose v2
+(Docker Desktop, Colima or plain Docker Engine all work).
 
 ---
 
@@ -142,12 +145,11 @@ python3 run.py .dogfood.toml > acceptance-report.txt
 python3 tools/check_extended.py .dogfood.toml > acceptance-report-extended.txt
 ```
 
-Both reports are committed, generated against a fresh `docker compose up` (new image,
-empty volumes): [acceptance-report.txt](acceptance-report.txt) (T1 and T2: 7 of 7 pass)
-and [acceptance-report-extended.txt](acceptance-report-extended.txt) (T3 and T4: 12 of 12
-pass). They say `localhost:8090` because port 8080 was taken on the machine that
-generated them, so the stack ran with `BANANAHAT_PORT=8090` and `base_url` was changed to
-match. Nothing else differs.
+Both reports are committed, generated against a fresh `docker compose up` on
+`localhost:8080` (a clean clone, new image, empty volumes):
+[acceptance-report.txt](acceptance-report.txt) (T1 and T2: 7 of 7 pass) and
+[acceptance-report-extended.txt](acceptance-report-extended.txt) (T3 and T4: 12 of 12
+pass).
 
 **A note on the official report.** `run.py` has checks only for T1 and T2, so for any
 portal claiming T3 or T4 it prints `note: claimed but not verified: T3 T4`. That line
@@ -251,12 +253,18 @@ cd src && python manage.py migrate && DEMO_MODE=true python manage.py seed
 DEMO_MODE=true DEBUG=true python manage.py runserver 8080
 ```
 
-Tests (148 of them, about 25 seconds, SQLite by default):
+Tests (148 of them, a few seconds, SQLite by default):
 
 ```bash
 pytest
 DATABASE_URL=postgres://user:pass@localhost:5432/test pytest    # against PostgreSQL
 ```
+
+On SQLite all 148 pass. On PostgreSQL 147 pass and one fails:
+`test_committed_openapi_document_matches_the_code`. Django takes the upper bound of a
+`PositiveSmallIntegerField` from the database (32767 on PostgreSQL, 2^63−1 on SQLite),
+and the committed `docs/openapi.yaml` was generated on SQLite, so the live `/api/schema/`
+on the Docker stack shows the smaller, correct bound for fields like `score_max`.
 
 They include the official `run.py` against a live server, a role × endpoint access
 matrix, a structural check that every view declares its access, deadline tests at
@@ -282,6 +290,9 @@ Reproduce the normalization study:
   slides are URLs. That is deliberate (no object store to run), and it is a limitation.
 - **Times are shown in UTC.** Events store a timezone, but the UI does not convert yet.
 - **English only.** No i18n.
+- **The committed OpenAPI document shows SQLite's integer bounds**, not PostgreSQL's (see
+  [Development](#development)). The live `/api/schema/` is correct; the committed copy
+  overstates the maximum of a few small integer fields.
 - **Webhook secrets are stored in clear**, because they must be used to sign. They are
   visible only to that event's organizers.
 - **The audit chain is tamper-evident, not tamper-proof**, until results are published
