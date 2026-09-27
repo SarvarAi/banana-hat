@@ -14,6 +14,8 @@ urlpatterns = [
     path("events/<str:event_id>/teams", views.EventTeamsView.as_view(), name="event-teams"),
     path("events/<str:event_id>/my-team", views.MyTeamView.as_view(), name="event-my-team"),
     path("events/<str:event_id>/roles", views.EventRolesView.as_view(), name="event-roles"),
+    path("events/<str:event_id>/judges/invitations", views.JudgeInvitationsView.as_view(),
+         name="event-judge-invitations"),
     path("events/<str:event_id>/scores", views.EventScoresView.as_view(), name="event-scores"),
     path("events/<str:event_id>/progress", views.ProgressView.as_view(), name="event-progress"),
     path("events/<str:event_id>/assignments/auto", views.AutoAssignView.as_view(), name="event-auto-assign"),

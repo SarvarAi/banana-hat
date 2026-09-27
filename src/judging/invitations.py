@@ -58,6 +58,69 @@ def invite(event, actor, *, email, name="", tracks=(), base_url) -> JudgeInvitat
     return invitation
 
 
+def parse_roster(event, text: str):
+    """Read a judge roster: one judge per line, `email,name,tracks`.
+
+    Tracks are separated by `;` and may be given by name or id; a header row is
+    skipped. Returns (rows, problems); rows are (email, name, [Track]).
+    """
+    import csv
+    import io
+
+    by_key = {}
+    for track in event.tracks.all():
+        by_key[track.public_id.lower()] = track
+        by_key[track.name.lower()] = track
+    rows, problems, seen = [], [], set()
+    for number, cells in enumerate(csv.reader(io.StringIO(text.strip())), start=1):
+        cells = [c.strip() for c in cells]
+        if not cells or not any(cells):
+            continue
+        if number == 1 and cells[0].lower() in {"email", "e-mail"}:
+            continue
+        email = User.objects.normalize_email(cells[0])
+        if "@" not in email:
+            problems.append(f"line {number}: {cells[0]!r} is not an email address")
+            continue
+        if email in seen:
+            problems.append(f"line {number}: {email} appears twice")
+            continue
+        seen.add(email)
+        name = cells[1] if len(cells) > 1 else ""
+        tracks = []
+        for key in filter(None, (t.strip() for t in (cells[2] if len(cells) > 2 else "").split(";"))):
+            track = by_key.get(key.lower())
+            if track is None:
+                problems.append(f"line {number}: no track called {key!r}")
+            else:
+                tracks.append(track)
+        rows.append((email, name, tracks))
+    return rows, problems
+
+
+def invite_many(event, actor, text: str, *, base_url):
+    """Invite a whole roster. Every line is checked first; if any is wrong, nobody is
+    invited and every problem is reported, the same all-or-nothing rule as imports.
+    People who already judge this event are skipped, not refused."""
+    access.require_organizer(actor, event)
+    rows, problems = parse_roster(event, text)
+    if problems:
+        raise DomainError("Nothing was sent. " + "; ".join(problems[:10]), code="invalid_roster")
+    if not rows:
+        raise DomainError("The roster is empty.", code="invalid_roster")
+    judging = set(EventRole.objects.judges().filter(event=event).values_list("user__email", flat=True))
+    pending = set(JudgeInvitation.objects.filter(event=event, accepted_at__isnull=True, revoked_at__isnull=True,
+                                                 expires_at__gt=clock.now()).values_list("email", flat=True))
+    sent, skipped = [], []
+    with transaction.atomic():
+        for email, name, tracks in rows:
+            if email in judging or email in pending:
+                skipped.append(email)
+                continue
+            sent.append(invite(event, actor, email=email, name=name, tracks=tracks, base_url=base_url))
+    return sent, skipped
+
+
 def find(raw) -> JudgeInvitation | None:
     return JudgeInvitation.objects.select_related("event").filter(token_digest=_digest(raw)).first()
 

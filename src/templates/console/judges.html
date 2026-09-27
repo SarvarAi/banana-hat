@@ -33,6 +33,14 @@
       <button class="btn" type="submit">Send invitation</button>
       <p class="small muted" style="margin-top:8px">The link works for 14 days and only for that address. {% if DEMO_MODE %}In the demo, read it in Mailpit at localhost:8025.{% endif %}</p>
     </form>
+    <form method="post" enctype="multipart/form-data" class="card">{% csrf_token %}
+      <h3>Invite a list</h3>
+      <input type="hidden" name="action" value="roster">
+      <p class="small">One judge per line: <code>email,name,tracks</code>, tracks separated by <code>;</code> (names or ids). Every line is checked first; if one is wrong, nobody is invited.</p>
+      <div class="field"><label for="roster">Paste a roster</label><textarea id="roster" name="roster" rows="5" class="mono" placeholder="email,name,tracks&#10;ada@example.org,Ada Okonkwo,Developer tools;Security"></textarea></div>
+      <div class="field"><label for="roster_file">or upload a CSV</label><input id="roster_file" type="file" name="roster_file" accept=".csv,text/csv"></div>
+      <button class="btn secondary" type="submit">Send invitations</button>
+    </form>
     <section class="card">
       <h3>Invitations</h3>
       {% for inv in invitations %}

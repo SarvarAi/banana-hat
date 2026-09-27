@@ -179,6 +179,11 @@ fixture format **plus** extra keys a fixture reader ignores: `criteria` (with we
 real `fixtures.json`: exporting the seeded event reproduces every fixture key exactly,
 and exporting, re-importing as a new event and exporting again is lossless.
 
+**Judge rosters** come in as CSV, one `email,name,tracks` line per judge (tracks by name
+or id, separated by `;`), on the console's Judges tab or
+`POST /api/v1/events/{id}/judges/invitations`. Every line is validated first, and one bad
+line invites nobody; people who already judge the event are skipped.
+
 Also exported, for spreadsheets: `scores.csv` (one row per review, with the weighted
 total and whether it counts), `results.csv` (ranking, raw mean, interval, rank in
 track), `projects.csv` (including drafts and duplicates), and the audit trail as CSV.

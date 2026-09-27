@@ -30,7 +30,7 @@ from events.models import Event, EventRole, Project
 from integrations import interchange, webhooks
 from integrations.models import WebhookEndpoint
 from judging import assignment as assignment_service
-from judging import pairwise, scoring
+from judging import invitations, pairwise, scoring
 from judging import results as results_service
 from judging.models import Assignment, Score
 from records import services as records
@@ -457,7 +457,8 @@ class ResultsView(APIView):
 
     permission_classes = [AllowAny]
 
-    @extend_schema(parameters=[OpenApiParameter("preview", bool), OpenApiParameter("method", str)])
+    @extend_schema(parameters=[OpenApiParameter("preview", bool), OpenApiParameter("method", str)],
+                   responses=s.ResultsSerializer)
     def get(self, request, event_id):
         event = _event(event_id, request.user)
         if request.query_params.get("preview"):
@@ -478,7 +479,8 @@ class PublishView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(request=inline_serializer("Publish", {"method": serializers.CharField(required=False)}),
-                   responses={201: None})
+                   responses={201: inline_serializer("Published", {
+                       "published_at": serializers.DateTimeField(), "record": serializers.CharField()})})
     def post(self, request, event_id):
         event = _organized_event(event_id, request.user)
         method = request.data.get("method") or None
@@ -492,6 +494,8 @@ class AuditView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(parameters=[OpenApiParameter("before", int), OpenApiParameter("action", str)],
+                   responses=s.AuditPageSerializer)
     def get(self, request, event_id):
         event = _organized_event(event_id, request.user)
         qs = AuditEntry.objects.filter(event=event).order_by("-id")
@@ -642,6 +646,25 @@ class WebhookDeliveriesView(APIView):
         return Response(s.WebhookDeliverySerializer(delivery).data)
 
 
+class JudgeInvitationsView(APIView):
+    """Bulk judge invitations from a roster: one `email,name,tracks` line per judge,
+    tracks separated by `;`. All lines are validated first; any problem invites nobody."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        request=inline_serializer("JudgeRoster", {"roster": serializers.CharField()}),
+        responses={201: inline_serializer("JudgeRosterResult", {
+            "sent": serializers.ListField(child=serializers.EmailField()),
+            "skipped": serializers.ListField(child=serializers.EmailField())})},
+    )
+    def post(self, request, event_id):
+        event = _organized_event(event_id, request.user)
+        sent, skipped = invitations.invite_many(event, request.user, str(request.data.get("roster", "")),
+                                                base_url=request.build_absolute_uri("/")[:-1])
+        return Response({"sent": [i.email for i in sent], "skipped": skipped}, status=201)
+
+
 class EventRolesView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -678,6 +701,7 @@ class BallotView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=s.BallotSerializer)
     def get(self, request, event_id):
         event = _event(event_id, request.user)
         ballot = voting.ballot_for_user(event, request.user, voting.request_meta(request))
@@ -690,7 +714,8 @@ class BallotView(APIView):
                          for p in voting.ballot_projects(event, ballot)],
         })
 
-    @extend_schema(request=s.BallotWriteSerializer)
+    @extend_schema(request=s.BallotWriteSerializer, responses={201: inline_serializer("BallotCast", {
+        "ballot": serializers.CharField(), "status": serializers.CharField()})})
     def post(self, request, event_id):
         event = _event(event_id, request.user)
         serializer = s.BallotWriteSerializer(data=request.data)
@@ -705,6 +730,7 @@ class VotesView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(responses=s.VotesSerializer)
     def get(self, request, event_id):
         event = _event(event_id, request.user)
         return Response({"turnout": voting.turnout(event), "tally": voting.tally(event)})
@@ -731,6 +757,7 @@ class JudgeRecordView(APIView):
             raise PermissionDenied("No such judge, or not yours to see.")
         return role
 
+    @extend_schema(responses=s.SignedRecordSerializer)
     def get(self, request, judge_id):
         role = self._role(request, judge_id, organizer_only=False)
         record = SignedRecord.objects.filter(event=role.event, kind=SignedRecord.Kind.JUDGE, subject=role.user,
@@ -739,6 +766,7 @@ class JudgeRecordView(APIView):
             raise NotFound("No current record; one is issued when results are published.")
         return Response({**records.export(record), "record": record.public_id})
 
+    @extend_schema(request=None, responses={201: s.SignedRecordSerializer})
     def post(self, request, judge_id):
         role = self._role(request, judge_id, organizer_only=True)
         record = records.issue_judge_record(role.event, role, actor=request.user)
@@ -750,6 +778,7 @@ class RecordView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(responses=s.SignedRecordSerializer)
     def get(self, request, record_id):
         record = get_object_or_404(SignedRecord.objects.select_related("key"), public_id=record_id)
         return Response({**records.export(record), "valid": records.verify(record),

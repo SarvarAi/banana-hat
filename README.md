@@ -121,15 +121,18 @@ portal in the same style (see [Acceptance](#acceptance)).
   ([THREAT-MODEL.md](THREAT-MODEL.md)).
 
 **T4: stretch**
-- A REST API (`/api/v1/`) with an OpenAPI 3 document and Swagger UI at `/api/docs/`,
-  served offline.
+- A REST API (`/api/v1/`) with an OpenAPI 3 document: committed at
+  [`docs/openapi.yaml`](docs/openapi.yaml) (a test fails if it drifts from the code) and
+  browsable in Swagger UI at `/api/docs/`, served offline.
 - Webhooks: HMAC-signed, a transactional outbox, retries with backoff, SSRF protection.
 - Signed Ed25519 records for published results, judge participation (with a commitment
   to their scores) and participant certificates, verifiable offline with
   [`tools/verify_record.py`](tools/verify_record.py) (standard library only).
 - Printable certificates.
 - An embeddable gallery widget: an iframe, or a one-line script that auto-sizes it.
-- Bulk import and export in the DOGFOOD fixture format, round-trip tested.
+- Bulk import and export: whole events in the DOGFOOD fixture format (round-trip
+  tested), judge rosters from CSV (`email,name,tracks`, all-or-nothing validation), and
+  CSV exports of scores, results, projects and the audit trail.
 - Pairwise judging mode (Bradley–Terry), the Pairwise bonus challenge.
 
 ## Acceptance
@@ -210,7 +213,8 @@ curl http://localhost:8080/api/v1/events/evt_01/results          # 403 until pub
 curl -H "Authorization: Bearer $TOKEN" -OJ http://localhost:8080/api/v1/events/evt_01/exports/event.json
 ```
 
-The OpenAPI document is at `/api/schema/` and a browsable reference at `/api/docs/`.
+The OpenAPI document is committed at [`docs/openapi.yaml`](docs/openapi.yaml), served live
+at `/api/schema/`, and browsable at `/api/docs/`.
 Errors always look like `{"error": {"code": "submissions_closed", "message": "..."}}`.
 
 A webhook receiver, verifying the signature and rejecting replays:
@@ -232,7 +236,8 @@ def verify(secret: str, header: str, body: bytes) -> bool:
 
 - **In:** `python manage.py seed --fixtures file.json`, the console's Import page, or
   `POST /api/v1/events/import`, all taking the DOGFOOD fixture format. Validation
-  reports every problem at once; the import is one transaction.
+  reports every problem at once; the import is one transaction. Judge rosters come in
+  as CSV on the Judges tab or `POST /api/v1/events/{id}/judges/invitations`.
 - **Out:** `event.json` (fixture format plus weights, prizes and pending assignments,
   losslessly re-importable), `scores.csv`, `results.csv`, `projects.csv`, `audit.csv`.
 - **Whole database:** `pg_dump`. See [DATA-MODEL.md](DATA-MODEL.md#import-and-export).
@@ -246,7 +251,7 @@ cd src && python manage.py migrate && DEMO_MODE=true python manage.py seed
 DEMO_MODE=true DEBUG=true python manage.py runserver 8080
 ```
 
-Tests (144 of them, about 25 seconds, SQLite by default):
+Tests (148 of them, about 25 seconds, SQLite by default):
 
 ```bash
 pytest
@@ -297,6 +302,7 @@ Reproduce the normalization study:
 | [JUDGING.md](JUDGING.md) | Assignment, scoring, the normalization method with its proof on the fixture data, pairwise mode, isolation. |
 | [THREAT-MODEL.md](THREAT-MODEL.md) | Sybil votes, ballot stuffing, collusion, tampering, and what we do not stop. |
 | [DEMO.md](DEMO.md) | The five-minute demo: one event lifecycle, create to publish. |
+| [docs/openapi.yaml](docs/openapi.yaml) | The REST API, as an OpenAPI 3 document. |
 
 ## License
 

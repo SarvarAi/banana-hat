@@ -1,0 +1,2831 @@
+openapi: 3.0.3
+info:
+  title: Banana Hat API
+  version: 1.0.0
+  description: 'Hackathon submission and judging. Authenticate with `Authorization:
+    Bearer <token>`; create tokens on your account page.'
+paths:
+  /api/v1/assignments/{assignment_id}/recuse:
+    post:
+      operationId: assignments_recuse_create
+      parameters:
+      - in: path
+        name: assignment_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - assignments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecuseRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecuseRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecuseRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+          description: ''
+  /api/v1/assignments/{assignment_id}/score:
+    get:
+      operationId: assignments_score_retrieve
+      description: PUT your score for an assignment. Replaces any earlier score until
+        judging closes.
+      parameters:
+      - in: path
+        name: assignment_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - assignments
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Score'
+          description: ''
+    put:
+      operationId: assignments_score_update
+      description: PUT your score for an assignment. Replaces any earlier score until
+        judging closes.
+      parameters:
+      - in: path
+        name: assignment_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - assignments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScoreWriteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ScoreWriteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ScoreWriteRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Score'
+          description: ''
+  /api/v1/events:
+    get:
+      operationId: events_list
+      description: Events you can see. POST creates one (requires permission to create
+        events).
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEventList'
+          description: ''
+    post:
+      operationId: events_create
+      description: Events you can see. POST creates one (requires permission to create
+        events).
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EventRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EventRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+          description: ''
+  /api/v1/events/{event_id}:
+    get:
+      operationId: events_retrieve
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventDetail'
+          description: ''
+    patch:
+      operationId: events_partial_update
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEventDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEventDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEventDetailRequest'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventDetail'
+          description: ''
+  /api/v1/events/{event_id}/assignments/auto:
+    post:
+      operationId: events_assignments_auto_create
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutoAssignRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AutoAssignRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AutoAssignRequest'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentPlan'
+          description: ''
+  /api/v1/events/{event_id}/audit:
+    get:
+      operationId: events_audit_retrieve
+      description: The event's audit trail, newest first. ?before=<entry id> pages
+        backwards.
+      parameters:
+      - in: query
+        name: action
+        schema:
+          type: string
+      - in: query
+        name: before
+        schema:
+          type: integer
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditPage'
+          description: ''
+  /api/v1/events/{event_id}/ballot:
+    get:
+      operationId: events_ballot_retrieve
+      description: Signed-in voting. GET shows your ballot in its own random order.
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ballot'
+          description: ''
+    post:
+      operationId: events_ballot_create
+      description: Signed-in voting. GET shows your ballot in its own random order.
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BallotWriteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BallotWriteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BallotWriteRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BallotCast'
+          description: ''
+  /api/v1/events/{event_id}/criteria:
+    get:
+      operationId: events_criteria_list
+      description: Read the rubric, or replace it (organizers, before any score exists).
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Criterion'
+          description: ''
+    put:
+      operationId: events_criteria_update
+      description: Read the rubric, or replace it (organizers, before any score exists).
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CriterionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CriterionRequest'
+          multipart/form-data:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CriterionRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Criterion'
+          description: ''
+  /api/v1/events/{event_id}/exports/{kind}:
+    get:
+      operationId: events_exports_retrieve
+      description: |-
+        CSV and JSON exports. Organizers only.
+
+        - scores.csv    one row per review: judge, project, every criterion, weighted total
+        - results.csv   the ranking under the event's normalization method, with raw means
+        - projects.csv  every project, including drafts and flagged duplicates
+        - event.json    the whole event in DOGFOOD fixture format (re-importable)
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+          pattern: ^[^/]+$
+        required: true
+      - in: path
+        name: kind
+        schema:
+          type: string
+          pattern: ^scores\.csv|results\.csv|projects\.csv|event\.json$
+        required: true
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/events/{event_id}/judges/invitations:
+    post:
+      operationId: events_judges_invitations_create
+      description: |-
+        Bulk judge invitations from a roster: one `email,name,tracks` line per judge,
+        tracks separated by `;`. All lines are validated first; any problem invites nobody.
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JudgeRosterRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JudgeRosterRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JudgeRosterRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JudgeRosterResult'
+          description: ''
+  /api/v1/events/{event_id}/my-team:
+    get:
+      operationId: events_my_team_retrieve
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+  /api/v1/events/{event_id}/pairwise:
+    get:
+      operationId: events_pairwise_retrieve
+      description: 'Pairwise mode: the next pair of projects for you to compare.'
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PairwisePair'
+          description: ''
+    post:
+      operationId: events_pairwise_create
+      description: 'Pairwise mode: the next pair of projects for you to compare.'
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PairwiseWriteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PairwiseWriteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PairwiseWriteRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          description: No response body
+  /api/v1/events/{event_id}/progress:
+    get:
+      operationId: events_progress_retrieve
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Progress'
+          description: ''
+  /api/v1/events/{event_id}/projects:
+    get:
+      operationId: events_projects_list
+      description: |-
+        GET: the event's gallery. POST: create your team's project in this event.
+
+        POST is refused with 403 `submissions_closed` once the deadline has passed. The
+        deadline is checked before anything else about the request.
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+          description: ''
+    post:
+      operationId: events_projects_create
+      description: |-
+        GET: the event's gallery. POST: create your team's project in this event.
+
+        POST is refused with 403 `submissions_closed` once the deadline has passed. The
+        deadline is checked before anything else about the request.
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectWriteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectWriteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectWriteRequest'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+  /api/v1/events/{event_id}/publish:
+    post:
+      operationId: events_publish_create
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PublishRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PublishRequest'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Published'
+          description: ''
+  /api/v1/events/{event_id}/results:
+    get:
+      operationId: events_results_retrieve
+      description: Published results. Organizers may preview live results with ?preview=1&method=.
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: method
+        schema:
+          type: string
+      - in: query
+        name: preview
+        schema:
+          type: boolean
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Results'
+          description: ''
+  /api/v1/events/{event_id}/roles:
+    get:
+      operationId: events_roles_list
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+          description: ''
+  /api/v1/events/{event_id}/scores:
+    get:
+      operationId: events_scores_list
+      description: Every score in the event. Organizers only.
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Score'
+          description: ''
+  /api/v1/events/{event_id}/teams:
+    post:
+      operationId: events_teams_create
+      description: POST creates a team in the event with you as captain.
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TeamCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TeamCreateRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+  /api/v1/events/{event_id}/votes:
+    get:
+      operationId: events_votes_retrieve
+      description: Community vote totals. 403 `results_hidden` for everyone until
+        voting closes.
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Votes'
+          description: ''
+  /api/v1/events/{event_id}/webhooks:
+    get:
+      operationId: events_webhooks_list
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Webhook'
+          description: ''
+    post:
+      operationId: events_webhooks_create
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WebhookRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WebhookRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+          description: ''
+  /api/v1/events/import:
+    post:
+      operationId: events_import_create
+      description: Create an event from a DOGFOOD fixture-format document.
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: {}
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: {}
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/judges/{judge_id}/record:
+    get:
+      operationId: judges_record_retrieve
+      description: |-
+        A judge's signed participation record.
+
+        GET: the latest record, for the judge themselves or an organizer of their event.
+        POST: issue a fresh one now (organizers). Records are also issued automatically to
+        every judge when results are published.
+      parameters:
+      - in: path
+        name: judge_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - judges
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignedRecord'
+          description: ''
+    post:
+      operationId: judges_record_create
+      description: |-
+        A judge's signed participation record.
+
+        GET: the latest record, for the judge themselves or an organizer of their event.
+        POST: issue a fresh one now (organizers). Records are also issued automatically to
+        every judge when results are published.
+      parameters:
+      - in: path
+        name: judge_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - judges
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignedRecord'
+          description: ''
+  /api/v1/judges/{judge_id}/scores:
+    get:
+      operationId: judges_scores_list
+      description: |-
+        Scores written by one judge.
+
+        `me` means you. Any other judge id is readable only by that judge themselves or by
+        an organizer of the judge's event; everyone else gets 403. A `?judge=` query
+        parameter naming someone else is refused the same way rather than ignored.
+      parameters:
+      - in: query
+        name: event
+        schema:
+          type: string
+        description: Only this event's scores.
+      - in: path
+        name: judge_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - judges
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Score'
+          description: ''
+  /api/v1/judges/me/assignments:
+    get:
+      operationId: judges_me_assignments_list
+      description: Your review queue across events.
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - judges
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAssignmentList'
+          description: ''
+  /api/v1/me:
+    get:
+      operationId: me_retrieve
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/projects:
+    get:
+      operationId: projects_list
+      description: The public gallery. Filter with ?event=evt_01&track=trk_01&q=text.
+      parameters:
+      - in: query
+        name: event
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - in: query
+        name: q
+        schema:
+          type: string
+      - in: query
+        name: track
+        schema:
+          type: string
+      tags:
+      - projects
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProjectList'
+          description: ''
+  /api/v1/projects/{project_id}:
+    get:
+      operationId: projects_retrieve
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - projects
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    patch:
+      operationId: projects_partial_update
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectWriteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectWriteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectWriteRequest'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+  /api/v1/projects/{project_id}/comments:
+    get:
+      operationId: projects_comments_list
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - projects
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+          description: ''
+    post:
+      operationId: projects_comments_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+  /api/v1/projects/{project_id}/submit:
+    post:
+      operationId: projects_submit_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - projects
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+  /api/v1/records/{record_id}:
+    get:
+      operationId: records_retrieve
+      description: A signed record, in the portable form tools/verify_record.py checks.
+      parameters:
+      - in: path
+        name: record_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - records
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignedRecord'
+          description: ''
+  /api/v1/teams/join:
+    post:
+      operationId: teams_join_create
+      tags:
+      - teams
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamJoinRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TeamJoinRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TeamJoinRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+  /api/v1/webhooks/{webhook_id}:
+    delete:
+      operationId: webhooks_destroy
+      parameters:
+      - in: path
+        name: webhook_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - webhooks
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/webhooks/{webhook_id}/deliveries:
+    get:
+      operationId: webhooks_deliveries_list
+      parameters:
+      - in: path
+        name: webhook_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - webhooks
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WebhookDelivery'
+          description: ''
+    post:
+      operationId: webhooks_deliveries_create
+      description: Send a test ping now.
+      parameters:
+      - in: path
+        name: webhook_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - webhooks
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDelivery'
+          description: ''
+components:
+  schemas:
+    Assignment:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        event:
+          type: string
+          readOnly: true
+        judge:
+          type: string
+          readOnly: true
+        project:
+          allOf:
+          - $ref: '#/components/schemas/Project'
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/AssignmentStatusEnum'
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        scored:
+          type: boolean
+          readOnly: true
+      required:
+      - event
+      - id
+      - judge
+      - project
+      - scored
+    AssignmentPlan:
+      type: object
+      properties:
+        created:
+          type: integer
+        shortfalls:
+          type: array
+          items: {}
+        seed:
+          type: integer
+      required:
+      - created
+      - seed
+      - shortfalls
+    AssignmentStatusEnum:
+      enum:
+      - pending
+      - done
+      - recused
+      type: string
+      description: |-
+        * `pending` - To review
+        * `done` - Reviewed
+        * `recused` - Recused (conflict of interest)
+    AuditEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        at:
+          type: string
+          format: date-time
+        actor:
+          type: string
+        action:
+          type: string
+        summary:
+          type: string
+        target:
+          type: array
+          items:
+            type: string
+        data:
+          type: object
+          additionalProperties: {}
+        digest:
+          type: string
+      required:
+      - action
+      - actor
+      - at
+      - data
+      - digest
+      - id
+      - summary
+      - target
+    AuditPage:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEntry'
+        chain:
+          $ref: '#/components/schemas/ChainReport'
+      required:
+      - chain
+      - entries
+    AutoAssignRequest:
+      type: object
+      properties:
+        target:
+          type: integer
+          maximum: 20
+          minimum: 1
+        max_load:
+          type: integer
+          minimum: 1
+        dry_run:
+          type: boolean
+          default: false
+    Ballot:
+      type: object
+      properties:
+        ballot:
+          type: string
+        votes_allowed:
+          type: integer
+        status:
+          type: string
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/BallotProject'
+          description: In this ballot's own random order.
+      required:
+      - ballot
+      - projects
+      - status
+      - votes_allowed
+    BallotCast:
+      type: object
+      properties:
+        ballot:
+          type: string
+        status:
+          type: string
+      required:
+      - ballot
+      - status
+    BallotProject:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        team:
+          type: string
+        chosen:
+          type: boolean
+      required:
+      - chosen
+      - id
+      - team
+      - title
+    BallotWriteRequest:
+      type: object
+      properties:
+        projects:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          maxItems: 50
+          minItems: 1
+      required:
+      - projects
+    ChainReport:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        checked:
+          type: integer
+        head:
+          type: string
+        broken_at:
+          type: integer
+          nullable: true
+        reason:
+          type: string
+      required:
+      - broken_at
+      - checked
+      - head
+      - ok
+      - reason
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        author:
+          type: string
+          readOnly: true
+        body:
+          type: string
+          maxLength: 2000
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - author
+      - body
+      - created_at
+      - id
+    CommentCreateRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+      required:
+      - body
+    Criterion:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        key:
+          type: string
+          description: Stable machine name, used in imports and exports.
+          maxLength: 40
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          description: Shown to judges next to the score.
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+      required:
+      - id
+      - key
+      - name
+      - weight
+    CriterionRequest:
+      type: object
+      properties:
+        key:
+          type: string
+          minLength: 1
+          description: Stable machine name, used in imports and exports.
+          maxLength: 40
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        description:
+          type: string
+          description: Shown to judges next to the score.
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+      required:
+      - key
+      - name
+      - weight
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          maxLength: 80
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 160
+        tagline:
+          type: string
+          maxLength: 240
+        description:
+          type: string
+        phase:
+          type: string
+          readOnly: true
+        submissions_open:
+          type: boolean
+          readOnly: true
+        submissions_open_at:
+          type: string
+          format: date-time
+        submissions_close_at:
+          type: string
+          format: date-time
+        judging_close_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 'Scores lock at this time. Empty: when results are published.'
+        results_published_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        max_team_size:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        score_min:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        score_max:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        reviews_per_project:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Target number of judges per project for automatic assignment.
+        normalization:
+          $ref: '#/components/schemas/NormalizationEnum'
+        voting_mode:
+          $ref: '#/components/schemas/VotingModeEnum'
+        voting_open_at:
+          type: string
+          format: date-time
+          nullable: true
+        voting_close_at:
+          type: string
+          format: date-time
+          nullable: true
+        votes_per_voter:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        voter_email_domains:
+          type: string
+          description: 'Only verified addresses at these domains may vote, e.g. "example.edu,
+            lab.example.org". Empty: anyone with a verified address.'
+          maxLength: 300
+        is_listed:
+          type: boolean
+          description: Listed events are visible to the public. Drafts are not.
+        url:
+          type: string
+          readOnly: true
+      required:
+      - id
+      - name
+      - phase
+      - results_published_at
+      - slug
+      - submissions_close_at
+      - submissions_open
+      - submissions_open_at
+      - url
+    EventDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          maxLength: 80
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 160
+        tagline:
+          type: string
+          maxLength: 240
+        description:
+          type: string
+        phase:
+          type: string
+          readOnly: true
+        submissions_open:
+          type: boolean
+          readOnly: true
+        submissions_open_at:
+          type: string
+          format: date-time
+        submissions_close_at:
+          type: string
+          format: date-time
+        judging_close_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 'Scores lock at this time. Empty: when results are published.'
+        results_published_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        max_team_size:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        score_min:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        score_max:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        reviews_per_project:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Target number of judges per project for automatic assignment.
+        normalization:
+          $ref: '#/components/schemas/NormalizationEnum'
+        voting_mode:
+          $ref: '#/components/schemas/VotingModeEnum'
+        voting_open_at:
+          type: string
+          format: date-time
+          nullable: true
+        voting_close_at:
+          type: string
+          format: date-time
+          nullable: true
+        votes_per_voter:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        voter_email_domains:
+          type: string
+          description: 'Only verified addresses at these domains may vote, e.g. "example.edu,
+            lab.example.org". Empty: anyone with a verified address.'
+          maxLength: 300
+        is_listed:
+          type: boolean
+          description: Listed events are visible to the public. Drafts are not.
+        url:
+          type: string
+          readOnly: true
+        tracks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Track'
+          readOnly: true
+        criteria:
+          type: array
+          items:
+            $ref: '#/components/schemas/Criterion'
+          readOnly: true
+        prizes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Prize'
+          readOnly: true
+      required:
+      - criteria
+      - id
+      - name
+      - phase
+      - prizes
+      - results_published_at
+      - slug
+      - submissions_close_at
+      - submissions_open
+      - submissions_open_at
+      - tracks
+      - url
+    EventRequest:
+      type: object
+      properties:
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        tagline:
+          type: string
+          maxLength: 240
+        description:
+          type: string
+        submissions_open_at:
+          type: string
+          format: date-time
+        submissions_close_at:
+          type: string
+          format: date-time
+        judging_close_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 'Scores lock at this time. Empty: when results are published.'
+        max_team_size:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        score_min:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        score_max:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        reviews_per_project:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Target number of judges per project for automatic assignment.
+        normalization:
+          $ref: '#/components/schemas/NormalizationEnum'
+        voting_mode:
+          $ref: '#/components/schemas/VotingModeEnum'
+        voting_open_at:
+          type: string
+          format: date-time
+          nullable: true
+        voting_close_at:
+          type: string
+          format: date-time
+          nullable: true
+        votes_per_voter:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        voter_email_domains:
+          type: string
+          description: 'Only verified addresses at these domains may vote, e.g. "example.edu,
+            lab.example.org". Empty: anyone with a verified address.'
+          maxLength: 300
+        is_listed:
+          type: boolean
+          description: Listed events are visible to the public. Drafts are not.
+      required:
+      - name
+      - slug
+      - submissions_close_at
+      - submissions_open_at
+    EventTypesEnum:
+      enum:
+      - project.submitted
+      - project.withdrawn
+      - judging.progress
+      - results.published
+      - results.unpublished
+      - comment.created
+      - ping
+      type: string
+      description: |-
+        * `project.submitted` - project.submitted
+        * `project.withdrawn` - project.withdrawn
+        * `judging.progress` - judging.progress
+        * `results.published` - results.published
+        * `results.unpublished` - results.unpublished
+        * `comment.created` - comment.created
+        * `ping` - ping
+    JudgeRosterRequest:
+      type: object
+      properties:
+        roster:
+          type: string
+          minLength: 1
+      required:
+      - roster
+    JudgeRosterResult:
+      type: object
+      properties:
+        sent:
+          type: array
+          items:
+            type: string
+            format: email
+        skipped:
+          type: array
+          items:
+            type: string
+            format: email
+      required:
+      - sent
+      - skipped
+    NormalizationEnum:
+      enum:
+      - judge_effect
+      - zscore
+      - raw
+      - implied_bt
+      - pairwise
+      type: string
+      description: |-
+        * `judge_effect` - Judge-effect model (recommended)
+        * `zscore` - Per-judge z-score, shrunk
+        * `raw` - Raw weighted mean
+        * `implied_bt` - Bradley–Terry on each judge's ranking
+        * `pairwise` - Bradley–Terry on pairwise comparisons
+    PaginatedAssignmentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Assignment'
+    PaginatedEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+    PaginatedProjectList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+    PairwisePair:
+      type: object
+      properties:
+        a:
+          $ref: '#/components/schemas/Project'
+        b:
+          $ref: '#/components/schemas/Project'
+      required:
+      - a
+      - b
+    PairwiseWriteRequest:
+      type: object
+      properties:
+        winner:
+          type: string
+          minLength: 1
+        loser:
+          type: string
+          minLength: 1
+      required:
+      - loser
+      - winner
+    PatchedEventDetailRequest:
+      type: object
+      properties:
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        tagline:
+          type: string
+          maxLength: 240
+        description:
+          type: string
+        submissions_open_at:
+          type: string
+          format: date-time
+        submissions_close_at:
+          type: string
+          format: date-time
+        judging_close_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 'Scores lock at this time. Empty: when results are published.'
+        max_team_size:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        score_min:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        score_max:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        reviews_per_project:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Target number of judges per project for automatic assignment.
+        normalization:
+          $ref: '#/components/schemas/NormalizationEnum'
+        voting_mode:
+          $ref: '#/components/schemas/VotingModeEnum'
+        voting_open_at:
+          type: string
+          format: date-time
+          nullable: true
+        voting_close_at:
+          type: string
+          format: date-time
+          nullable: true
+        votes_per_voter:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        voter_email_domains:
+          type: string
+          description: 'Only verified addresses at these domains may vote, e.g. "example.edu,
+            lab.example.org". Empty: anyone with a verified address.'
+          maxLength: 300
+        is_listed:
+          type: boolean
+          description: Listed events are visible to the public. Drafts are not.
+    PatchedProjectWriteRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        summary:
+          type: string
+          maxLength: 300
+        description:
+          type: string
+        repo_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 400
+          - type: string
+            maxLength: 0
+        demo_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 400
+          - type: string
+            maxLength: 0
+        video_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 400
+          - type: string
+            maxLength: 0
+        track:
+          type: string
+          minLength: 1
+          description: Track id, e.g. trk_01.
+        submit:
+          type: boolean
+          default: false
+          description: Submit immediately instead of saving a draft.
+    Prize:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        value:
+          type: string
+          description: Free text, e.g. "800 USD".
+          maxLength: 60
+        description:
+          type: string
+        track:
+          type: string
+          readOnly: true
+        winner:
+          type: string
+          nullable: true
+          readOnly: true
+      required:
+      - id
+      - name
+      - track
+      - winner
+    PrizeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        value:
+          type: string
+          description: Free text, e.g. "800 USD".
+          maxLength: 60
+        description:
+          type: string
+      required:
+      - name
+    Progress:
+      type: object
+      properties:
+        reviews_total:
+          type: integer
+        reviews_done:
+          type: integer
+        percent:
+          type: integer
+        tracks:
+          type: array
+          items: {}
+        judges:
+          type: array
+          items: {}
+        under_covered:
+          type: array
+          items: {}
+      required:
+      - judges
+      - percent
+      - reviews_done
+      - reviews_total
+      - tracks
+      - under_covered
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        event:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          maxLength: 160
+        summary:
+          type: string
+          maxLength: 300
+        description:
+          type: string
+        repo_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 400
+          - type: string
+            maxLength: 0
+        demo_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 400
+          - type: string
+            maxLength: 0
+        video_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 400
+          - type: string
+            maxLength: 0
+        track:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        team:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/ProjectStatusEnum'
+        submitted_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the project was last submitted or edited while submitted.
+        duplicate_of:
+          type: string
+          readOnly: true
+        url:
+          type: string
+          readOnly: true
+      required:
+      - duplicate_of
+      - event
+      - id
+      - team
+      - title
+      - track
+      - url
+    ProjectStatusEnum:
+      enum:
+      - draft
+      - submitted
+      - withdrawn
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `submitted` - Submitted
+        * `withdrawn` - Withdrawn
+    ProjectWriteRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        summary:
+          type: string
+          maxLength: 300
+        description:
+          type: string
+        repo_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 400
+          - type: string
+            maxLength: 0
+        demo_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 400
+          - type: string
+            maxLength: 0
+        video_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 400
+          - type: string
+            maxLength: 0
+        track:
+          type: string
+          minLength: 1
+          description: Track id, e.g. trk_01.
+        submit:
+          type: boolean
+          default: false
+          description: Submit immediately instead of saving a draft.
+    PublishRequest:
+      type: object
+      properties:
+        method:
+          type: string
+          minLength: 1
+    Published:
+      type: object
+      properties:
+        published_at:
+          type: string
+          format: date-time
+        record:
+          type: string
+      required:
+      - published_at
+      - record
+    RecuseRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 300
+      required:
+      - reason
+    ResultRow:
+      type: object
+      properties:
+        rank:
+          type: integer
+        track_rank:
+          type: integer
+          nullable: true
+        project:
+          type: string
+        title:
+          type: string
+        team:
+          type: string
+        track:
+          type: string
+          nullable: true
+        track_name:
+          type: string
+          nullable: true
+        score:
+          type: number
+          format: double
+        raw_mean:
+          type: number
+          format: double
+          nullable: true
+        reviews:
+          type: integer
+        ci:
+          type: array
+          items:
+            type: number
+            format: double
+          nullable: true
+        shift:
+          type: integer
+          nullable: true
+      required:
+      - ci
+      - project
+      - rank
+      - raw_mean
+      - reviews
+      - score
+      - shift
+      - team
+      - title
+      - track
+      - track_name
+      - track_rank
+    Results:
+      type: object
+      properties:
+        event:
+          type: object
+          additionalProperties: {}
+        method:
+          type: string
+        method_label:
+          type: string
+        on_scale:
+          type: boolean
+        scale:
+          type: array
+          items:
+            type: integer
+        criteria:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        diagnostics:
+          type: object
+          additionalProperties: {}
+        reviews:
+          type: integer
+        overall:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResultRow'
+        tracks:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        prizes:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        ties:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        excluded:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        community:
+          type: array
+          items:
+            $ref: '#/components/schemas/TallyRow'
+          nullable: true
+        audit_head:
+          type: string
+        published_at:
+          type: string
+        record:
+          type: string
+      required:
+      - audit_head
+      - community
+      - criteria
+      - diagnostics
+      - event
+      - excluded
+      - method
+      - method_label
+      - on_scale
+      - overall
+      - prizes
+      - reviews
+      - scale
+      - ties
+      - tracks
+    Role:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        user:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        tracks:
+          type: array
+          items:
+            type: string
+          readOnly: true
+      required:
+      - id
+      - role
+      - tracks
+      - user
+    RoleEnum:
+      enum:
+      - organizer
+      - judge
+      - participant
+      type: string
+      description: |-
+        * `organizer` - Organizer
+        * `judge` - Judge
+        * `participant` - Participant
+    Score:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        event:
+          type: string
+          readOnly: true
+        judge:
+          type: string
+          readOnly: true
+        project:
+          type: string
+          readOnly: true
+        project_title:
+          type: string
+          readOnly: true
+        values:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        comment:
+          type: string
+        submitted_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        voided:
+          type: boolean
+          readOnly: true
+      required:
+      - event
+      - id
+      - judge
+      - project
+      - project_title
+      - values
+      - voided
+    ScoreWriteRequest:
+      type: object
+      properties:
+        values:
+          type: object
+          additionalProperties:
+            type: integer
+          description: 'Criterion key to value, e.g. {"functionality": 4}.'
+        comment:
+          type: string
+          maxLength: 4000
+      required:
+      - values
+    SignedRecord:
+      type: object
+      properties:
+        payload:
+          type: object
+          additionalProperties: {}
+          description: The signed statement. Its canonical JSON is what was signed.
+        signature:
+          type: string
+          description: Ed25519 signature, base64url.
+        algorithm:
+          type: string
+        public_key:
+          type: string
+          description: Convenience copy; verify against /.well-known/bananahat-keys.json.
+        record:
+          type: string
+        valid:
+          type: boolean
+        revoked:
+          type: boolean
+      required:
+      - algorithm
+      - payload
+      - public_key
+      - signature
+    SourceEnum:
+      enum:
+      - auto
+      - manual
+      - import
+      type: string
+      description: |-
+        * `auto` - Automatic
+        * `manual` - Manual
+        * `import` - Imported
+    TallyRow:
+      type: object
+      properties:
+        rank:
+          type: integer
+        project:
+          type: string
+        title:
+          type: string
+        team:
+          type: string
+        votes:
+          type: integer
+      required:
+      - project
+      - rank
+      - team
+      - title
+      - votes
+    Team:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        event:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        members:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+        invite_code:
+          type: string
+          nullable: true
+          description: Only members see the invite code.
+          readOnly: true
+      required:
+      - event
+      - id
+      - invite_code
+      - members
+      - name
+    TeamCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+      required:
+      - name
+    TeamJoinRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+      required:
+      - code
+    Track:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        description:
+          type: string
+      required:
+      - id
+      - name
+    TrackRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+      required:
+      - name
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        name:
+          type: string
+          maxLength: 120
+        is_staff:
+          type: boolean
+          description: 'Platform administrator: can use /admin and see every event.'
+        can_create_events:
+          type: boolean
+          description: May create new events, becoming their first organizer.
+      required:
+      - email
+      - name
+    Votes:
+      type: object
+      properties:
+        turnout:
+          type: object
+          additionalProperties:
+            type: integer
+        tally:
+          type: array
+          items:
+            $ref: '#/components/schemas/TallyRow'
+      required:
+      - tally
+      - turnout
+    VotingModeEnum:
+      enum:
+      - disabled
+      - authenticated
+      - email
+      - link
+      type: string
+      description: |-
+        * `disabled` - No community vote
+        * `authenticated` - Signed-in users
+        * `email` - Verified email address
+        * `link` - Single-use ballot links
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        url:
+          type: string
+          format: uri
+          maxLength: 500
+        description:
+          type: string
+          maxLength: 200
+        event_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventTypesEnum'
+        secret:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - secret
+      - url
+    WebhookDelivery:
+      type: object
+      properties:
+        delivery_id:
+          type: string
+          maxLength: 40
+        event_type:
+          type: string
+          maxLength: 40
+        status:
+          $ref: '#/components/schemas/WebhookDeliveryStatusEnum'
+        attempts:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        last_status_code:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        last_error:
+          type: string
+          maxLength: 300
+        created_at:
+          type: string
+          format: date-time
+        delivered_at:
+          type: string
+          format: date-time
+          nullable: true
+        next_attempt_at:
+          type: string
+          format: date-time
+      required:
+      - delivery_id
+      - event_type
+    WebhookDeliveryStatusEnum:
+      enum:
+      - pending
+      - succeeded
+      - failed
+      - dead
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `succeeded` - Delivered
+        * `failed` - Failed, will retry
+        * `dead` - Gave up
+    WebhookRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          minLength: 1
+          maxLength: 500
+        description:
+          type: string
+          maxLength: 200
+        event_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventTypesEnum'
+        is_active:
+          type: boolean
+      required:
+      - url
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'An API token from your account page: `Authorization: Bearer bh_...`.
+        Tokens are stored hashed, expire, and can be revoked.'
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: bh_session

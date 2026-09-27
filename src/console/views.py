@@ -236,6 +236,14 @@ def judges(request, slug):
                     tracks=chosen, base_url=request.build_absolute_uri("/")[:-1],
                 )
                 messages.success(request, f"Invitation emailed to {inv.email}.")
+            elif action == "roster":
+                text = request.POST.get("roster", "")
+                if request.FILES.get("roster_file"):
+                    text = request.FILES["roster_file"].read().decode("utf-8-sig", errors="replace")
+                sent, skipped = invitations.invite_many(event, request.user, text,
+                                                        base_url=request.build_absolute_uri("/")[:-1])
+                messages.success(request, f"Invited {len(sent)} judge(s)."
+                                 + (f" Skipped {len(skipped)} already judging or invited." if skipped else ""))
             elif action == "revoke":
                 invitations.revoke(get_object_or_404(JudgeInvitation, event=event, pk=request.POST["invitation"]),
                                    request.user)

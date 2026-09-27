@@ -249,6 +249,104 @@ class RoleSerializer(serializers.ModelSerializer):
         return {"name": role.user.name, "email": role.user.email}
 
 
+# --- response shapes, for the OpenAPI document ----------------------------------------
+
+class SignedRecordSerializer(serializers.Serializer):
+    payload = serializers.DictField(help_text="The signed statement. Its canonical JSON is what was signed.")
+    signature = serializers.CharField(help_text="Ed25519 signature, base64url.")
+    algorithm = serializers.CharField()
+    public_key = serializers.CharField(help_text="Convenience copy; verify against /.well-known/bananahat-keys.json.")
+    record = serializers.CharField(required=False)
+    valid = serializers.BooleanField(required=False)
+    revoked = serializers.BooleanField(required=False)
+
+
+class AuditEntrySerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    at = serializers.DateTimeField()
+    actor = serializers.CharField()
+    action = serializers.CharField()
+    summary = serializers.CharField()
+    target = serializers.ListField(child=serializers.CharField())
+    data = serializers.DictField()
+    digest = serializers.CharField()
+
+
+class ChainReportSerializer(serializers.Serializer):
+    ok = serializers.BooleanField()
+    checked = serializers.IntegerField()
+    head = serializers.CharField()
+    broken_at = serializers.IntegerField(allow_null=True)
+    reason = serializers.CharField()
+
+
+class AuditPageSerializer(serializers.Serializer):
+    entries = AuditEntrySerializer(many=True)
+    chain = ChainReportSerializer()
+
+
+class BallotProjectSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    title = serializers.CharField()
+    team = serializers.CharField()
+    chosen = serializers.BooleanField()
+
+
+class BallotSerializer(serializers.Serializer):
+    ballot = serializers.CharField()
+    votes_allowed = serializers.IntegerField()
+    status = serializers.CharField()
+    projects = BallotProjectSerializer(many=True, help_text="In this ballot's own random order.")
+
+
+class TallyRowSerializer(serializers.Serializer):
+    rank = serializers.IntegerField()
+    project = serializers.CharField()
+    title = serializers.CharField()
+    team = serializers.CharField()
+    votes = serializers.IntegerField()
+
+
+class VotesSerializer(serializers.Serializer):
+    turnout = serializers.DictField(child=serializers.IntegerField())
+    tally = TallyRowSerializer(many=True)
+
+
+class ResultRowSerializer(serializers.Serializer):
+    rank = serializers.IntegerField()
+    track_rank = serializers.IntegerField(allow_null=True)
+    project = serializers.CharField()
+    title = serializers.CharField()
+    team = serializers.CharField()
+    track = serializers.CharField(allow_null=True)
+    track_name = serializers.CharField(allow_null=True)
+    score = serializers.FloatField()
+    raw_mean = serializers.FloatField(allow_null=True)
+    reviews = serializers.IntegerField()
+    ci = serializers.ListField(child=serializers.FloatField(), allow_null=True)
+    shift = serializers.IntegerField(allow_null=True)
+
+
+class ResultsSerializer(serializers.Serializer):
+    event = serializers.DictField()
+    method = serializers.CharField()
+    method_label = serializers.CharField()
+    on_scale = serializers.BooleanField()
+    scale = serializers.ListField(child=serializers.IntegerField())
+    criteria = serializers.ListField(child=serializers.DictField())
+    diagnostics = serializers.DictField()
+    reviews = serializers.IntegerField()
+    overall = ResultRowSerializer(many=True)
+    tracks = serializers.ListField(child=serializers.DictField())
+    prizes = serializers.ListField(child=serializers.DictField())
+    ties = serializers.ListField(child=serializers.DictField())
+    excluded = serializers.ListField(child=serializers.DictField())
+    community = TallyRowSerializer(many=True, allow_null=True)
+    audit_head = serializers.CharField()
+    published_at = serializers.CharField(required=False)
+    record = serializers.CharField(required=False)
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User

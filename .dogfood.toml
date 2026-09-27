@@ -1,18 +1,12 @@
-# .dogfood.toml for Banana Hat.
-# Start the portal with `docker compose up`, then:  python3 run.py .dogfood.toml
-
 [portal]
 base_url = "http://localhost:8080"
 
 [tiers]
-# run.py only has checks for T1 and T2. T3 and T4 are verified by
-# tools/check_extended.py; see acceptance-report-extended.txt and the README.
+# run.py only checks T1 and T2; T3 and T4 are verified by tools/check_extended.py
 claimed = ["T1", "T2", "T3", "T4"]
 pitch = "A self-hosted hackathon portal where deadlines hold, judges never see each other's scores, and every ranking comes with its math, its audit trail and a signature."
 
 [auth]
-# Printed by the seed when the container starts (DEMO_MODE only). Bearer tokens, so
-# the checker's POST reaches the deadline check instead of tripping over CSRF.
 organizer   = "Authorization: Bearer bh_demo_organizer_2026"
 judge_a     = "Authorization: Bearer bh_demo_judge_a_2026"
 judge_b     = "Authorization: Bearer bh_demo_judge_b_2026"
@@ -22,6 +16,5 @@ participant = "Authorization: Bearer bh_demo_participant_2026"
 gallery      = "/projects/"
 submit       = "/api/v1/events/evt_01/projects"
 judge_scores = "/api/v1/judges/me/scores"
-# judge_a is fixture judge jdg_24; judge_b asking for these scores gets 403.
 peer_scores  = "/api/v1/judges/jdg_24/scores"
 csv_export   = "/api/v1/events/evt_01/exports/scores.csv"

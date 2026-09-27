@@ -155,6 +155,28 @@ def test_judge_scoring_page_flow(web, judge_a, event):
     assert Score.objects.get(assignment=a).as_dict() == {"functionality": 4, "quality": 4, "innovation": 5}
 
 
+def test_bulk_judge_invitations_from_a_roster(api, event, mailoutbox):
+    roster = ("email,name,tracks\n"
+              "new.judge@example.net,New Judge,Developer tools;trk_04\n"
+              "diego.herrera@example.org,Diego,\n")  # already a judge: skipped
+    response = api("organizer").post("/api/v1/events/evt_01/judges/invitations", {"roster": roster})
+    assert response.status_code == 201, response.content
+    assert response.json() == {"sent": ["new.judge@example.net"], "skipped": ["diego.herrera@example.org"]}
+    invitation = event.judge_invitations.get(email="new.judge@example.net")
+    assert sorted(t.public_id for t in invitation.tracks.all()) == ["trk_01", "trk_04"]
+    assert len(mailoutbox) == 1
+
+
+def test_bad_roster_invites_nobody_and_reports_every_line(api, event, mailoutbox):
+    roster = "not-an-email,X,\nok@example.net,Ok,No Such Track\n"
+    response = api("organizer").post("/api/v1/events/evt_01/judges/invitations", {"roster": roster})
+    assert response.status_code == 400
+    message = response.json()["error"]["message"]
+    assert "line 1" in message and "line 2" in message
+    assert not event.judge_invitations.exists() and not mailoutbox
+    assert api("judge_a").post("/api/v1/events/evt_01/judges/invitations", {"roster": "a@b.co"}).status_code == 403
+
+
 def test_pairwise_mode(event, judge_a):
     from judging import pairwise
 
