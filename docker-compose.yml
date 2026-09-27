@@ -19,6 +19,8 @@ x-app-env: &app-env
   # Demo mode: loads fixtures.json, prints test credentials, shows the account switcher.
   DEMO_MODE: "true"                                                   # PROD: false
   SEED_FIXTURES: "true"                                               # PROD: false
+  # Lets the demo send webhooks to receivers on this machine.
+  WEBHOOK_ALLOW_PRIVATE_TARGETS: "true"                               # PROD: false
 
 services:
   db:
@@ -58,6 +60,19 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  worker:
+    image: bananahat:latest        # built by the web service above; never pulled
+    pull_policy: never
+    command: ["worker"]
+    healthcheck:
+      disable: true                # the image's check probes HTTP, which the worker does not serve
+    environment: *app-env
+    volumes:
+      - app-data:/data
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   db-data:
